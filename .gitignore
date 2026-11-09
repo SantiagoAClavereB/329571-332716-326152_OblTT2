@@ -5,6 +5,9 @@ contracts/broadcast/
 contracts/coverage/
 lcov.info
 
+# Direcciones del deploy local: las genera contracts/script/Deploy.s.sol en cada Anvil
+frontend/public/deployments.json
+
 # Angular / Node (frontend/)
 node_modules/
 .angular/

@@ -77,6 +77,10 @@ interface IVestingManager {
     function vestedAmount(uint256 id) external view returns (uint256);
     function claimableAmount(uint256 id) external view returns (uint256);
     function getAgreement(uint256 id) external view returns (Agreement memory);
+
+    /// @notice Lectura en lote para la dApp: devuelve varios acuerdos en una sola llamada.
+    ///         Revierte con AgreementNotFound si algun id no existe.
+    function getAgreements(uint256[] calldata ids) external view returns (Agreement[] memory);
     function getAgreementsByPayer(address payer) external view returns (uint256[] memory);
     function getAgreementsByBeneficiary(address beneficiary) external view returns (uint256[] memory);
 }
