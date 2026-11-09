@@ -30,6 +30,8 @@ para que no queden nonces viejos.
 - `src/app/core/transaction.service.ts`: estado de cada transacción (firmando, pendiente, confirmada, fallida) y aviso para recargar datos.
 - `src/app/core/abis.ts`: ABIs del contrato (copia de `IVestingManager.sol`) y de ERC-20.
 - `src/app/core/vesting.models.ts`: tipos (`Agreement`, `AgreementDetails`, `HistoryEvent`…).
+- `src/app/shared/tx-list/`: avisos con el estado de las transacciones (se muestran en todas las pantallas).
+- `src/app/crear/`: pantalla `/crear` (formulario reactivo con validaciones, approve + creación).
 - `src/app/wallet-check/`: pantalla de prueba de la Fase 1.
 
 ## Dirección del contrato (`public/deployments.json`)
