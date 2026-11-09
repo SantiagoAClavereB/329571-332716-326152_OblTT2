@@ -605,13 +605,44 @@ contract VestingManagerTest is Test {
         uint256[] memory ids = new uint256[](2);
         ids[0] = id2;
         ids[1] = id1;
-        IVestingManager.Agreement[] memory list = vesting.getAgreements(ids);
+        IVestingManager.AgreementSummary[] memory list = vesting.getAgreements(ids);
 
         assertEq(list.length, 2);
-        assertEq(list[0].totalAmount, 5e6);
-        assertFalse(list[0].revocable);
-        assertEq(list[1].totalAmount, AMOUNT);
-        assertTrue(list[1].revocable);
+        assertEq(list[0].agreement.totalAmount, 5e6);
+        assertFalse(list[0].agreement.revocable);
+        assertEq(list[1].agreement.totalAmount, AMOUNT);
+        assertTrue(list[1].agreement.revocable);
+    }
+
+    function test_getAgreements_includesVestedAndClaimable() public {
+        uint256 id = _create(true);
+        vm.warp(start + 400);
+        _claim(id); // retira 400
+        vm.warp(start + 700);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = id;
+        IVestingManager.AgreementSummary memory s = vesting.getAgreements(ids)[0];
+
+        assertEq(s.vested, vesting.vestedAmount(id));
+        assertEq(s.claimable, vesting.claimableAmount(id));
+        assertEq(s.vested, 700e6);
+        assertEq(s.claimable, 300e6, "700 devengado - 400 ya reclamado");
+        assertEq(s.agreement.claimedAmount, 400e6);
+    }
+
+    function test_getAgreements_cancelledUsesFrozenVestedAmount() public {
+        uint256 id = _create(true);
+        vm.warp(start + 250);
+        _cancel(id);
+        vm.warp(end + 1 days);
+
+        uint256[] memory ids = new uint256[](1);
+        ids[0] = id;
+        IVestingManager.AgreementSummary memory s = vesting.getAgreements(ids)[0];
+
+        assertEq(s.vested, 250e6, "congelado al cancelar");
+        assertEq(s.claimable, 250e6);
     }
 
     function test_getAgreements_emptyListReturnsEmpty() public view {

@@ -119,10 +119,12 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
     /// @inheritdoc IVestingManager
     /// @dev `ids` va en calldata: se lee directo de los datos de la transaccion sin copiarlo a memoria.
     ///      El resultado va en memory porque es nuevo, de largo conocido, y se devuelve al llamador.
-    function getAgreements(uint256[] calldata ids) external view returns (Agreement[] memory result) {
-        result = new Agreement[](ids.length);
+    function getAgreements(uint256[] calldata ids) external view returns (AgreementSummary[] memory result) {
+        result = new AgreementSummary[](ids.length);
         for (uint256 i = 0; i < ids.length; i++) {
-            result[i] = _getStorage(ids[i]);
+            Agreement storage a = _getStorage(ids[i]);
+            uint256 vested = _vested(a);
+            result[i] = AgreementSummary({agreement: a, vested: vested, claimable: vested - a.claimedAmount});
         }
     }
 

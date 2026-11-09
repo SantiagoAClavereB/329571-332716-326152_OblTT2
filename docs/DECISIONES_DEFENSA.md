@@ -38,9 +38,10 @@ Los campos están ordenados para llenar slots de 32 bytes:
 - Regla: `calldata` sirve para parámetros **dinámicos** (`string`, `bytes`, arrays) de funciones `external`. Son de **solo lectura** y se leen directo de los datos de la transacción, sin copiarlos a memoria.
 - Ejemplo real en el código: `getAgreements(uint256[] calldata ids)` es una lectura en lote para la dApp (una sola llamada trae el listado completo). El arreglo de ids entra en `calldata`, así que no se paga la copia a memoria de un arreglo de largo arbitrario.
 - Las demás funciones de `VestingManager` reciben solo **tipos por valor** (`address`, `uint256`, `uint48`, `bool`), que no llevan ubicación de datos.
-- Dentro de `getAgreements`, el resultado sí va en `memory` (`Agreement[] memory result = new Agreement[](ids.length)`): es un arreglo nuevo, de largo conocido, que se arma y se devuelve. Cada elemento se copia desde storage con `_getStorage(ids[i])`, y si algún id no existe revierte con `AgreementNotFound`.
+- Dentro de `getAgreements`, el resultado sí va en `memory` (`AgreementSummary[] memory result = new AgreementSummary[](ids.length)`): es un arreglo nuevo, de largo conocido, que se arma y se devuelve. Cada elemento se arma con un puntero a storage (`_getStorage(ids[i])`) y, si algún id no existe, revierte con `AgreementNotFound`.
+- Cada `AgreementSummary` trae el acuerdo junto con `vested` y `claimable` ya calculados. La dApp pide así un listado en **una llamada** en lugar de tres por acuerdo (`getAgreement`, `vestedAmount` y `claimableAmount`).
 - Contraste con `memory` obligatorio: en `MockToken` el constructor recibe `string memory name_` y `string memory symbol_`. En un constructor los parámetros dinámicos no pueden ir en `calldata`, deben ir en `memory`.
-- Es la única función que se agregó después de congelar la interfaz; el grupo la aprobó. La dApp debe sumarla a `abis.ts`.
+- Es la única función que se agregó después de congelar la interfaz. El diseño con `AgreementSummary` es el de la dApp, y `abis.ts` ya lo usa.
 
 ### 2.5 Mappings y listados
 - `_idsByPayer` y `_idsByBeneficiary` son `mapping(address => uint256[])`. Guardan solo ids (32 bytes por acuerdo) y el acuerdo completo se lee aparte con `getAgreement`.
