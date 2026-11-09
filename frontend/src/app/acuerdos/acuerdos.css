@@ -1,0 +1,20 @@
+main { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; }
+h1 { margin-bottom: 0.25rem; }
+.hint { color: #666; margin-top: 0.25rem; font-size: 0.9rem; }
+.error { color: #c62828; }
+.muted { color: #888; font-size: 0.85rem; margin-left: 0.25rem; }
+.mono { font-family: ui-monospace, Consolas, monospace; }
+.table-wrap { overflow-x: auto; margin-top: 1rem; }
+table { border-collapse: collapse; width: 100%; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid #eee; vertical-align: middle; }
+th { font-size: 0.85rem; color: #555; }
+.num { text-align: right; white-space: nowrap; }
+.dates { font-size: 0.85rem; white-space: nowrap; }
+.badge { padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.85rem; white-space: nowrap; }
+.active { background: #e8f0fe; color: #1a4fb3; }
+.ended { background: #fff6ec; color: #b35900; }
+.completed { background: #eefaf1; color: #1a7f37; }
+.cancelled { background: #f2f2f2; color: #666; }
+.bar { height: 6px; background: #eee; border-radius: 3px; min-width: 80px; margin-bottom: 0.25rem; }
+.bar > div { height: 100%; background: #1a7f37; border-radius: 3px; }
+button { padding: 0.35rem 0.75rem; cursor: pointer; }
