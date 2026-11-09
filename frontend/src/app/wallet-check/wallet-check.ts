@@ -3,13 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Contract, formatEther, formatUnits, isAddress } from 'ethers';
 import { WalletService } from '../core/wallet.service';
 import { ANVIL } from '../core/networks';
-
-const ERC20_ABI = [
-  'function name() view returns (string)',
-  'function symbol() view returns (string)',
-  'function decimals() view returns (uint8)',
-  'function balanceOf(address) view returns (uint256)',
-];
+import { ERC20_ABI } from '../core/abis';
 
 const TOKEN_KEY = 'walletCheck.token';
 
