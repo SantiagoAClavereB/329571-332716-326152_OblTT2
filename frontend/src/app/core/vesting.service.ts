@@ -72,16 +72,32 @@ export class VestingService {
     return toAgreement(id, await vesting['getAgreement'](id));
   }
 
-  /** Acuerdo + devengado + disponible + datos del token, en una sola llamada. */
+  /** Acuerdo + devengado + disponible + datos del token, en una sola llamada al contrato. */
   async getAgreementDetails(id: bigint): Promise<AgreementDetails> {
+    const [details] = await this.getAgreementsDetails([id]);
+    return details;
+  }
+
+  /**
+   * Varios acuerdos de una vez con `getAgreements(ids)`: una sola llamada al contrato
+   * en lugar de tres por acuerdo (getAgreement + vestedAmount + claimableAmount).
+   * Devuelve en el mismo orden que `ids`.
+   */
+  async getAgreementsDetails(ids: bigint[]): Promise<AgreementDetails[]> {
+    if (ids.length === 0) return [];
     const vesting = await this.vesting();
-    const [raw, vested, claimable] = await Promise.all([
-      vesting['getAgreement'](id),
-      vesting['vestedAmount'](id) as Promise<bigint>,
-      vesting['claimableAmount'](id) as Promise<bigint>,
-    ]);
-    const agreement = toAgreement(id, raw);
-    return { ...agreement, vested, claimable, tokenInfo: await this.tokenInfo(agreement.token) };
+    const summaries: any[] = await vesting['getAgreements'](ids);
+    return Promise.all(
+      summaries.map(async (s, i) => {
+        const agreement = toAgreement(ids[i], s.agreement);
+        return {
+          ...agreement,
+          vested: s.vested as bigint,
+          claimable: s.claimable as bigint,
+          tokenInfo: await this.tokenInfo(agreement.token), // cacheado: se lee una vez por token
+        };
+      }),
+    );
   }
 
   /** Acuerdos donde `account` es pagador (pantalla /acuerdos), del más nuevo al más viejo. */
@@ -286,7 +302,7 @@ export class VestingService {
   }
 
   private async detailsFor(ids: bigint[]): Promise<AgreementDetails[]> {
-    const details = await Promise.all(ids.map((id) => this.getAgreementDetails(id)));
+    const details = await this.getAgreementsDetails([...ids]);
     return details.sort((a, b) => (b.id > a.id ? 1 : b.id < a.id ? -1 : 0));
   }
 }

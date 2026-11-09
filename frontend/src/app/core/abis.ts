@@ -19,6 +19,7 @@ export const VESTING_ABI = [
   `function getAgreement(uint256 id) view returns (${AGREEMENT_TUPLE})`,
   'function getAgreementsByPayer(address payer) view returns (uint256[])',
   'function getAgreementsByBeneficiary(address beneficiary) view returns (uint256[])',
+  `function getAgreements(uint256[] ids) view returns (tuple(${AGREEMENT_TUPLE} agreement, uint256 vested, uint256 claimable)[])`,
 
   // Eventos
   'event AgreementCreated(uint256 indexed id, address indexed payer, address indexed beneficiary, address token, uint256 totalAmount, uint48 startTime, uint48 endTime, bool revocable)',
