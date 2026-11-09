@@ -1,4 +1,4 @@
-import { canCancel, canClaim, cancelBlockedReason, displayStatus, percent } from './agreement-utils';
+import { canCancel, canClaim, cancelBlockedReason, displayStatus, percent, timeProgress } from './agreement-utils';
 import { Agreement, AgreementStatus } from './vesting.models';
 
 const PAYER = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
@@ -63,5 +63,14 @@ describe('canClaim', () => {
     expect(canClaim({ ...a, claimable: 400n }, OTHER.toLowerCase())).toBe(true);
     expect(canClaim({ ...a, claimable: 400n }, PAYER)).toBe(false);
     expect(canClaim({ ...a, claimable: 0n }, OTHER)).toBe(false);
+  });
+});
+
+describe('timeProgress', () => {
+  it('va de 0 a 100 entre inicio y fin', () => {
+    expect(timeProgress(agreement(), 50)).toBe(0);
+    expect(timeProgress(agreement(), 125)).toBe(25);
+    expect(timeProgress(agreement(), 250)).toBe(100);
+    expect(timeProgress(agreement(), null)).toBe(0);
   });
 });

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import {
   canCancel,
   cancelBlockedReason,
+  cancelConfirmText,
   displayStatus,
   formatAmount,
   formatDate,
@@ -72,13 +73,7 @@ export class Acuerdos {
   }
 
   protected async cancel(a: AgreementDetails): Promise<void> {
-    const refund = formatAmount(a.totalAmount - a.vested, a.tokenInfo);
-    const ok = confirm(
-      `¿Cancelar el acuerdo #${a.id}?\n\n` +
-        `Se te devuelve aproximadamente ${refund} (lo no devengado). ` +
-        `Lo devengado hasta ahora queda para el beneficiario, que lo puede reclamar después.`,
-    );
-    if (!ok) return;
+    if (!confirm(cancelConfirmText(a))) return;
     await this.tx.run(`Cancelar acuerdo #${a.id}`, () => this.vesting.cancel(a.id));
   }
 
