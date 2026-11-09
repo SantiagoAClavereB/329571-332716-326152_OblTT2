@@ -26,7 +26,21 @@ para que no queden nonces viejos.
 
 - `src/app/core/wallet.service.ts`: conexión con MetaMask. Guarda cuenta y red en signals y escucha `accountsChanged` / `chainChanged`.
 - `src/app/core/networks.ts`: datos de la red Anvil.
+- `src/app/core/vesting.service.ts`: lecturas, escrituras y eventos del contrato de vesting.
+- `src/app/core/abis.ts`: ABIs del contrato (copia de `IVestingManager.sol`) y de ERC-20.
+- `src/app/core/vesting.models.ts`: tipos (`Agreement`, `AgreementDetails`, `HistoryEvent`…).
 - `src/app/wallet-check/`: pantalla de prueba de la Fase 1.
+
+## Dirección del contrato (`public/deployments.json`)
+
+La dApp lee la dirección del contrato de vesting de `public/deployments.json`, que tiene que generar el
+script de deploy. Formato (indexado por chainId):
+
+```json
+{ "31337": { "vestingManager": "0x…", "deployBlock": 0 } }
+```
+
+`deployBlock` es opcional: es el bloque desde donde se buscan los eventos para el historial.
 
 ## Tests
 
