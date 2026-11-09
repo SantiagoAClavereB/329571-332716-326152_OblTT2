@@ -27,6 +27,13 @@ interface IVestingManager {
         uint256 vestedAtCancel; // devengado congelado al cancelar (0 si sigue activo)
     }
 
+    /// @dev Lo que devuelve getAgreements: el acuerdo y los montos calculados al momento de la consulta.
+    struct AgreementSummary {
+        Agreement agreement;
+        uint256 vested; // igual a vestedAmount(id)
+        uint256 claimable; // igual a claimableAmount(id)
+    }
+
     // ---------------------------------------------------------------- Eventos
     event AgreementCreated(
         uint256 indexed id,
@@ -83,4 +90,9 @@ interface IVestingManager {
     function getAgreements(uint256[] calldata ids) external view returns (Agreement[] memory);
     function getAgreementsByPayer(address payer) external view returns (uint256[] memory);
     function getAgreementsByBeneficiary(address beneficiary) external view returns (uint256[] memory);
+
+    /// @notice Lectura en lote: acuerdo + devengado + disponible de cada id, en el mismo orden.
+    ///         Revierte con AgreementNotFound si algún id no existe.
+    /// @dev `ids` es calldata: solo se lee, así que no se copia a memory (más barato que `uint256[] memory`).
+    function getAgreements(uint256[] calldata ids) external view returns (AgreementSummary[] memory);
 }

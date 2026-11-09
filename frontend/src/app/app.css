@@ -1,0 +1,18 @@
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ddd;
+  font-family: system-ui, sans-serif;
+}
+nav { display: flex; gap: 1rem; }
+nav a { color: #333; text-decoration: none; padding: 0.25rem 0; }
+nav a.active { font-weight: 600; border-bottom: 2px solid #333; }
+.wallet { display: flex; align-items: center; gap: 0.5rem; }
+.mono { font-family: ui-monospace, Consolas, monospace; }
+.error { color: #c62828; }
+.banner { margin: 0.5rem 1rem; }
+button { padding: 0.4rem 0.8rem; cursor: pointer; }
+.warn-btn { border-color: #b35900; color: #b35900; }
