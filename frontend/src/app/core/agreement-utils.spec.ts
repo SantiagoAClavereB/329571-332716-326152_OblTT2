@@ -1,4 +1,4 @@
-import { canCancel, cancelBlockedReason, displayStatus, percent } from './agreement-utils';
+import { canCancel, canClaim, cancelBlockedReason, displayStatus, percent } from './agreement-utils';
 import { Agreement, AgreementStatus } from './vesting.models';
 
 const PAYER = '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266';
@@ -50,5 +50,18 @@ describe('agreement-utils', () => {
     expect(percent(1n, 3n)).toBe(33.3);
     expect(percent(1000n, 1000n)).toBe(100);
     expect(percent(0n, 0n)).toBe(0);
+  });
+});
+
+describe('canClaim', () => {
+  it('solo el beneficiario y con saldo disponible', () => {
+    const a = {
+      id: 1n, payer: PAYER, beneficiary: OTHER, token: OTHER, startTime: 100, endTime: 200,
+      status: AgreementStatus.Cancelled, revocable: true, totalAmount: 1000n, claimedAmount: 0n, vestedAtCancel: 400n,
+    };
+    expect(canClaim({ ...a, claimable: 400n }, OTHER)).toBe(true); // tras cancelar sigue pudiendo reclamar
+    expect(canClaim({ ...a, claimable: 400n }, OTHER.toLowerCase())).toBe(true);
+    expect(canClaim({ ...a, claimable: 400n }, PAYER)).toBe(false);
+    expect(canClaim({ ...a, claimable: 0n }, OTHER)).toBe(false);
   });
 });

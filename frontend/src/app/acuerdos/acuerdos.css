@@ -18,3 +18,4 @@ th { font-size: 0.85rem; color: #555; }
 .bar { height: 6px; background: #eee; border-radius: 3px; min-width: 80px; margin-bottom: 0.25rem; }
 .bar > div { height: 100%; background: #1a7f37; border-radius: 3px; }
 button { padding: 0.35rem 0.75rem; cursor: pointer; }
+.summary { margin-top: 1rem; padding: 0.75rem 1rem; background: #eefaf1; border-radius: 8px; }

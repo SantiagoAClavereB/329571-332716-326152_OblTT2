@@ -65,3 +65,8 @@ export function shortAddress(address: string): string {
 export function formatDate(unix: number): string {
   return new Date(unix * 1000).toLocaleString('es-UY', { dateStyle: 'short', timeStyle: 'short' });
 }
+
+/** El beneficiario puede reclamar si hay saldo disponible (también después de una cancelación). */
+export function canClaim(a: Agreement & { claimable: bigint }, account: string | null): boolean {
+  return !!account && a.beneficiary.toLowerCase() === account.toLowerCase() && a.claimable > 0n;
+}
