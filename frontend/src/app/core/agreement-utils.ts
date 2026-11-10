@@ -70,3 +70,20 @@ export function formatDate(unix: number): string {
 export function canClaim(a: Agreement & { claimable: bigint }, account: string | null): boolean {
   return !!account && a.beneficiary.toLowerCase() === account.toLowerCase() && a.claimable > 0n;
 }
+
+/** Progreso temporal (0–100): cuánto del período ya pasó. */
+export function timeProgress(a: Agreement, now: number | null): number {
+  if (now === null || now <= a.startTime) return 0;
+  if (now >= a.endTime) return 100;
+  return Math.floor(((now - a.startTime) * 1000) / (a.endTime - a.startTime)) / 10;
+}
+
+/** Texto del confirm antes de cancelar. */
+export function cancelConfirmText(a: Agreement & { vested: bigint; tokenInfo: TokenInfo }): string {
+  const refund = formatAmount(a.totalAmount - a.vested, a.tokenInfo);
+  return (
+    `¿Cancelar el acuerdo #${a.id}?\n\n` +
+    `Se te devuelve aproximadamente ${refund} (lo no devengado). ` +
+    `Lo devengado hasta ahora queda para el beneficiario, que lo puede reclamar después.`
+  );
+}

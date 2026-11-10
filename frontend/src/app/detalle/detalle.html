@@ -1,0 +1,117 @@
+<main>
+  <p class="back"><a routerLink="/acuerdos">← Mis acuerdos</a> · <a routerLink="/ingresos">Mis ingresos</a></p>
+
+  @if (id() === null) {
+    <h1>Acuerdo inválido</h1>
+    <p class="error">El id del acuerdo tiene que ser un número mayor que 0.</p>
+  } @else if (!wallet.isConnected()) {
+    <h1>Acuerdo #{{ id() }}</h1>
+    <p>Conectá MetaMask para ver el acuerdo.</p>
+  } @else if (!wallet.isAnvil()) {
+    <h1>Acuerdo #{{ id() }}</h1>
+    <p class="error">Estás en otra red. Cambiá a Anvil desde el botón de arriba.</p>
+  } @else if (loadError()) {
+    <h1>Acuerdo #{{ id() }}</h1>
+    <p class="error">{{ loadError() }}</p>
+  } @else if (agreement(); as a) {
+    <h1>
+      Acuerdo #{{ a.id }}
+      <span class="badge" [class]="statusClass(a, now())">{{ displayStatus(a, now()) }}</span>
+    </h1>
+    <p class="role">Tu rol: <strong>{{ role() }}</strong></p>
+
+    <!-- Acciones -->
+    @if (canClaim(a) || canCancel(a)) {
+      <div class="actions">
+        @if (canClaim(a)) {
+          <button (click)="claim(a)" [disabled]="tx.busy()">Reclamar {{ formatAmount(a.claimable, a.tokenInfo) }}</button>
+        }
+        @if (canCancel(a)) {
+          <button class="danger" (click)="cancel(a)" [disabled]="tx.busy()">Cancelar acuerdo</button>
+        }
+      </div>
+    } @else if (role() === 'Pagador' && cancelBlockedReason(a, now())) {
+      <p class="muted">No se puede cancelar: {{ cancelBlockedReason(a, now()) }}</p>
+    }
+
+    <!-- Progreso -->
+    <section>
+      <h2>Progreso</h2>
+      <div class="progress-label">
+        <span>Tiempo transcurrido</span>
+        <span>{{ timeProgress(a, now()) }}%</span>
+      </div>
+      <div class="bar time"><div [style.width.%]="timeProgress(a, now())"></div></div>
+
+      <div class="progress-label">
+        <span>Devengado</span>
+        <span>{{ formatAmount(a.vested, a.tokenInfo) }} ({{ percent(a.vested, a.totalAmount) }}%)</span>
+      </div>
+      <div class="bar"><div [style.width.%]="percent(a.vested, a.totalAmount)"></div></div>
+
+      <div class="progress-label">
+        <span>Reclamado</span>
+        <span>{{ formatAmount(a.claimedAmount, a.tokenInfo) }} ({{ percent(a.claimedAmount, a.totalAmount) }}%)</span>
+      </div>
+      <div class="bar claimed"><div [style.width.%]="percent(a.claimedAmount, a.totalAmount)"></div></div>
+
+      @if (cancelEvent(); as c) {
+        <p class="muted">
+          Cancelado el {{ formatDate(c.timestamp) }}: el devengado quedó congelado en
+          {{ formatAmount(c.vestedAtCancel, a.tokenInfo) }}.
+        </p>
+      }
+    </section>
+
+    <!-- Información -->
+    <section>
+      <h2>Información</h2>
+      <dl>
+        <dt>Pagador</dt>
+        <dd class="mono">{{ a.payer }}</dd>
+        <dt>Beneficiario</dt>
+        <dd class="mono">{{ a.beneficiary }}</dd>
+        <dt>Token</dt>
+        <dd>{{ a.tokenInfo.name }} ({{ a.tokenInfo.symbol }}, {{ a.tokenInfo.decimals }} decimales)<br /><span class="mono small">{{ a.token }}</span></dd>
+        <dt>Total</dt>
+        <dd>{{ formatAmount(a.totalAmount, a.tokenInfo) }}</dd>
+        <dt>Devengado</dt>
+        <dd>{{ formatAmount(a.vested, a.tokenInfo) }}</dd>
+        <dt>Reclamado</dt>
+        <dd>{{ formatAmount(a.claimedAmount, a.tokenInfo) }}</dd>
+        <dt>Disponible</dt>
+        <dd><strong>{{ formatAmount(a.claimable, a.tokenInfo) }}</strong></dd>
+        <dt>Inicio</dt>
+        <dd>{{ formatDate(a.startTime) }}</dd>
+        <dt>Fin</dt>
+        <dd>{{ formatDate(a.endTime) }}</dd>
+        <dt>Revocable</dt>
+        <dd>{{ a.revocable ? 'Sí' : 'No' }}</dd>
+      </dl>
+    </section>
+
+    <!-- Historial -->
+    <section>
+      <h2>Historial</h2>
+      @if (history(); as h) {
+        @if (h.length === 0) {
+          <p class="muted">Sin eventos.</p>
+        } @else {
+          <ol class="history">
+            @for (e of h; track e.txHash + e.logIndex) {
+              <li>
+                <span class="when">{{ formatDate(e.timestamp) }}</span>
+                <strong>{{ eventLabel[e.type] }}</strong>
+                <span>{{ eventAmount(e, a) }}</span>
+                <span class="mono small" [title]="e.txHash">tx {{ shortAddress(e.txHash) }} · bloque {{ e.blockNumber }}</span>
+              </li>
+            }
+          </ol>
+        }
+      }
+    </section>
+  } @else {
+    <h1>Acuerdo #{{ id() }}</h1>
+    <p>Cargando…</p>
+  }
+</main>

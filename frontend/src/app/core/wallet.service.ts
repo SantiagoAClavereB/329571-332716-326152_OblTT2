@@ -1,5 +1,5 @@
 import { Injectable, NgZone, OnDestroy, computed, inject, signal } from '@angular/core';
-import { BrowserProvider, JsonRpcSigner } from 'ethers';
+import { BrowserProvider, JsonRpcSigner, getAddress } from 'ethers';
 import type { InjectedProvider } from './ethereum';
 import { ANVIL } from './networks';
 
@@ -22,7 +22,7 @@ export class WalletService implements OnDestroy {
   readonly isAnvil = computed(() => this.chainId() === ANVIL.chainId);
 
   private readonly onAccountsChanged = (accounts: string[]) =>
-    this.zone.run(() => this.account.set(accounts[0] ?? null));
+    this.zone.run(() => this.account.set(toChecksum(accounts[0])));
 
   private readonly onChainChanged = (chainIdHex: string) =>
     this.zone.run(() => this.chainId.set(BigInt(chainIdHex)));
@@ -96,7 +96,7 @@ export class WalletService implements OnDestroy {
     try {
       const accounts = (await this.ethereum!.request({ method })) as string[];
       const chainIdHex = (await this.ethereum!.request({ method: 'eth_chainId' })) as string;
-      this.account.set(accounts[0] ?? null);
+      this.account.set(toChecksum(accounts[0]));
       this.chainId.set(BigInt(chainIdHex));
     } catch (e) {
       this.error.set(this.describe(e));
@@ -108,4 +108,9 @@ export class WalletService implements OnDestroy {
     if (e?.code === -32002) return 'Ya hay una solicitud pendiente: abrí MetaMask.';
     return e?.shortMessage ?? e?.message ?? String(e);
   }
+}
+
+/** MetaMask devuelve las direcciones en minúsculas: se guardan con checksum (formato estándar con mayúsculas). */
+function toChecksum(address: string | undefined): string | null {
+  return address ? getAddress(address) : null;
 }
