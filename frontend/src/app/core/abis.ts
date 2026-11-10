@@ -39,6 +39,9 @@ export const VESTING_ABI = [
   'error NotRevocable()',
   'error AlreadyEnded()',
   'error NothingToClaim()',
+  // Errores de OpenZeppelin que hereda el contrato
+  'error SafeERC20FailedOperation(address token)',
+  'error ReentrancyGuardReentrantCall()',
 ];
 
 export const ERC20_ABI = [

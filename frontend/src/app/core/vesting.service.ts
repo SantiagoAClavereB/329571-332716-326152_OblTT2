@@ -45,6 +45,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   NotRevocable: 'El acuerdo no es revocable.',
   AlreadyEnded: 'El período ya terminó: no se puede cancelar.',
   NothingToClaim: 'No hay nada disponible para reclamar.',
+  SafeERC20FailedOperation: 'La transferencia del token falló: el token no respondió como un ERC-20 estándar.',
+  ReentrancyGuardReentrantCall: 'El token intentó volver a llamar al contrato durante la transferencia y se bloqueó.',
   ERC20InsufficientBalance: 'No tenés saldo suficiente del token.',
   ERC20InsufficientAllowance: 'Falta aprobar (approve) el monto del token.',
 };
