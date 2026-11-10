@@ -103,7 +103,7 @@ En un Anvil recién iniciado las direcciones siempre son las mismas:
    | Cuenta de Anvil | Dirección | Rol sugerido |
    |---|---|---|
    | #0 | `0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266` | Pagador (tiene los tUSD) |
-   | #1 | `0x70997970C51812dc3A64C64Cd8a8D1D8D7a2D7b5` | Beneficiario |
+   | #1 | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | Beneficiario |
    | #2 | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` | Tercero sin permisos |
 
 2. La red Anvil no hace falta agregarla a mano. La dApp ofrece el botón **Cambiar a Anvil**, que la agrega si MetaMask no la conoce.
@@ -134,7 +134,7 @@ Ejecutar desde cualquier carpeta, con Anvil corriendo.
 **Darle tokens a otra cuenta.** El `mint` del token de prueba es abierto. Este ejemplo le da 1.000 tUSD (6 decimales) a la cuenta #1:
 
 ```bash
-cast send 0x5FbDB2315678afecb367f032d93F642f64180aa3 "mint(address,uint256)" 0x70997970C51812dc3A64C64Cd8a8D1D8D7a2D7b5 1000000000 --unlocked --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:8545
+cast send 0x5FbDB2315678afecb367f032d93F642f64180aa3 "mint(address,uint256)" 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 1000000000 --unlocked --from 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 --rpc-url http://127.0.0.1:8545
 ```
 
 **Adelantar el tiempo de la blockchain.** Este ejemplo adelanta 1 día (86.400 segundos):
