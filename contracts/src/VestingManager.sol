@@ -57,6 +57,30 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
     }
 
     /// @inheritdoc IVestingManager
+    /// @dev Los arreglos van en calldata: solo se leen, asi que no se copian a memoria. Se valida todo el lote
+    ///      antes de mover fondos y se cobra una sola vez por la suma, que es donde esta el ahorro de gas.
+    function createAgreementsBatch(
+        address token,
+        address[] calldata beneficiaries,
+        uint256[] calldata amounts,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable
+    ) external nonReentrant returns (uint256[] memory ids) {
+        uint256 count = beneficiaries.length;
+        if (count == 0) revert EmptyBatch();
+        if (count != amounts.length) revert LengthMismatch();
+
+        uint256 total = _validateBatch(token, beneficiaries, amounts, startTime, endTime);
+        _pull(token, total);
+
+        ids = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            ids[i] = _store(token, beneficiaries[i], amounts[i], startTime, endTime, revocable);
+        }
+    }
+
+    /// @inheritdoc IVestingManager
     function claim(uint256 id) external nonReentrant {
         Agreement storage a = _getStorage(id);
         if (msg.sender != a.beneficiary) revert NotBeneficiary();
@@ -158,6 +182,20 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         if (amount == 0) revert ZeroAmount();
         // Se permite un inicio pasado, pero el acuerdo debe terminar en el futuro y despues de empezar.
         if (endTime <= startTime || endTime <= block.timestamp) revert InvalidTimeRange();
+    }
+
+    /// @dev Valida cada elemento del lote con las mismas reglas que un acuerdo individual y devuelve la suma.
+    function _validateBatch(
+        address token,
+        address[] calldata beneficiaries,
+        uint256[] calldata amounts,
+        uint48 startTime,
+        uint48 endTime
+    ) private view returns (uint256 total) {
+        for (uint256 i = 0; i < beneficiaries.length; i++) {
+            _validate(token, beneficiaries[i], amounts[i], startTime, endTime);
+            total += amounts[i];
+        }
     }
 
     /// @dev Toma los fondos del pagador. Se mide el balance real recibido: un token con comision por

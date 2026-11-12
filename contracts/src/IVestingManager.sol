@@ -64,6 +64,8 @@ interface IVestingManager {
     error AlreadyEnded(); // cancelar despues de endTime
     error NothingToClaim();
     error InvalidCliff(); // el cliff debe estar entre startTime y endTime
+    error EmptyBatch(); // createAgreementsBatch sin destinatarios
+    error LengthMismatch(); // beneficiarios y montos de distinto largo
 
     // -------------------------------------------------------------- Escrituras
     /// @notice Crea un acuerdo y bloquea `amount` de `token` (requiere approve previo).
@@ -88,6 +90,18 @@ interface IVestingManager {
         uint48 endTime,
         bool revocable
     ) external returns (uint256 id);
+
+    /// @notice Batch payroll (desafio opcional C): crea un acuerdo por cada beneficiario con el mismo periodo y la
+    ///         misma revocabilidad, y cobra todo con UNA sola transferFrom por la suma de los montos. Si cualquier
+    ///         elemento es invalido se revierte el lote completo. Devuelve los ids en el orden de `beneficiaries`.
+    function createAgreementsBatch(
+        address token,
+        address[] calldata beneficiaries,
+        uint256[] calldata amounts,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable
+    ) external returns (uint256[] memory ids);
 
     /// @notice El beneficiario retira lo devengado y aun no reclamado. nonReentrant.
     function claim(uint256 id) external;
