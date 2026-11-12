@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import {Script, console} from "forge-std/Script.sol";
 import {MockToken} from "../src/MockToken.sol";
+import {MockPermitToken} from "../src/MockPermitToken.sol";
 import {VestingManager} from "../src/VestingManager.sol";
 
 /// @notice Despliega el token de prueba y el VestingManager, y deja las direcciones en
@@ -19,24 +20,29 @@ contract Deploy is Script {
     function run() external returns (VestingManager vesting, MockToken token) {
         vm.startBroadcast();
         token = new MockToken("Test USD", "tUSD", TOKEN_DECIMALS);
+        // Token con soporte EIP-2612 para probar createAgreementWithPermit (desafio opcional E).
+        MockPermitToken permitToken = new MockPermitToken("Permit USD", "pUSD", TOKEN_DECIMALS);
         vesting = new VestingManager();
         token.mint(msg.sender, INITIAL_MINT);
+        permitToken.mint(msg.sender, INITIAL_MINT);
         vm.stopBroadcast();
 
-        console.log("MockToken:      ", address(token));
-        console.log("VestingManager: ", address(vesting));
+        console.log("MockToken:       ", address(token));
+        console.log("MockPermitToken: ", address(permitToken));
+        console.log("VestingManager:  ", address(vesting));
 
-        _writeDeployment(address(vesting), address(token));
+        _writeDeployment(address(vesting), address(token), address(permitToken));
     }
 
     /// @dev Agrega o actualiza la entrada de la red actual sin pisar las de otras redes.
-    function _writeDeployment(address vesting, address token) internal {
+    function _writeDeployment(address vesting, address token, address permitToken) internal {
         if (!vm.exists(DEPLOYMENTS_FILE)) vm.writeFile(DEPLOYMENTS_FILE, "{}");
 
         string memory key = vm.toString(block.chainid);
         string memory entry = "entry";
         vm.serializeAddress(entry, "vestingManager", vesting);
         vm.serializeAddress(entry, "mockToken", token);
+        vm.serializeAddress(entry, "mockPermitToken", permitToken);
         string memory json = vm.serializeUint(entry, "deployBlock", block.number);
 
         vm.writeJson(json, DEPLOYMENTS_FILE, string.concat(".", key));

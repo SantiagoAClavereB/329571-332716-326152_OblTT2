@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -54,6 +55,26 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         id = _store(token, beneficiary, amount, startTime, endTime, revocable);
         _cliffTime[id] = cliffTime;
         emit CliffConfigured(id, cliffTime);
+    }
+
+    /// @inheritdoc IVestingManager
+    /// @dev La firma va en calldata (struct de solo lectura). `permit` se llama dentro de un try/catch a proposito:
+    ///      cualquiera puede ver la firma en el mempool y ejecutar `permit` antes, lo que haria revertir una llamada
+    ///      directa (griefing). Si la allowance ya existe, el cobro funciona igual; si no, `_pull` revierte.
+    function createAgreementWithPermit(
+        address token,
+        address beneficiary,
+        uint256 amount,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable,
+        PermitSignature calldata sig
+    ) external nonReentrant returns (uint256 id) {
+        _validate(token, beneficiary, amount, startTime, endTime);
+        try IERC20Permit(token).permit(msg.sender, address(this), amount, sig.deadline, sig.v, sig.r, sig.s) {}
+        catch {}
+        _pull(token, amount);
+        id = _store(token, beneficiary, amount, startTime, endTime, revocable);
     }
 
     /// @inheritdoc IVestingManager

@@ -73,3 +73,50 @@ en `memory`, porque es un arreglo nuevo que se arma y se devuelve.
 **Tests.** `contracts/test/VestingBatch.t.sol`: creación, un solo cobro por la suma, eventos, reclamo y cancelación
 individuales, atomicidad ante un elemento inválido, allowance insuficiente, token con comisión y la comparación de
 gas.
+
+## E. Permit (EIP-2612)
+
+**Qué hace.** `createAgreementWithPermit(token, beneficiary, amount, startTime, endTime, revocable, sig)` permite
+que el pagador cree el acuerdo en **una sola transacción**: en lugar de enviar antes un `approve`, firma off-chain
+un mensaje EIP-2612 y el contrato llama a `permit` con esa firma y después cobra con `transferFrom`.
+
+```
+Antes:  tx 1 approve(vesting, amount)   +   tx 2 createAgreement(...)
+Ahora:  firma off-chain (gratis)        +   tx 1 createAgreementWithPermit(..., sig)
+```
+
+`sig` es un struct `PermitSignature { deadline, v, r, s }` en `calldata`. Se agrupó la firma en un struct, y no en
+cuatro parámetros sueltos, para que la función no llegue a diez parámetros: con tantos, Solidity corre riesgo de
+dar el error *stack too deep*. No se probó la variante con parámetros sueltos; es una decisión de legibilidad y
+prevención.
+
+**Decisiones de seguridad (para la defensa).**
+
+- **`permit` va dentro de un `try/catch`.** La firma viaja visible en el mempool y cualquiera puede ejecutar
+  `token.permit(...)` antes que nosotros. Si el contrato llamara a `permit` sin protección, esa llamada
+  adelantada haría revertir la creación (ataque de *griefing*). Con el `try/catch` el fallo se ignora y el cobro
+  funciona igual porque la allowance ya quedó otorgada. Si la allowance no alcanza, `_pull` revierte con
+  `ERC20InsufficientAllowance`.
+- **Se aprueba exactamente `amount`.** El `transferFrom` consume toda la allowance, así que no queda una
+  aprobación abierta.
+- **Solo funciona para el que llama.** `permit` se evalúa con `owner = msg.sender`, así que nadie puede usar la
+  firma de otro para gastar sus tokens.
+- **Un token sin soporte de permit** sigue funcionando si el pagador ya hizo `approve`: la llamada a `permit` falla
+  dentro del `try/catch`, se ignora y se usa la allowance existente.
+- Las validaciones comunes (token, monto, beneficiario, fechas) corren **antes** de llamar a `permit`, para no
+  gastar la firma en una creación que iba a fallar.
+
+**Límite conocido.** Un token con una función `fallback` que acepte cualquier llamada (como el WETH clásico) haría
+que `permit` "tenga éxito" sin hacer nada. No es un problema de seguridad: el `transferFrom` posterior revierte si
+no hay allowance.
+
+**Token de prueba.** `MockPermitToken` (`contracts/src/MockPermitToken.sol`): ERC-20 con `ERC20Permit`, decimales
+configurables y mint abierto. `Deploy.s.sol` lo despliega como `pUSD` y guarda su dirección en
+`deployments.json` bajo la clave `mockPermitToken` (Angular la ignora).
+
+**Tests.** `contracts/test/VestingPermit.t.sol`: creación sin approve, allowance consumida y nonce avanzado, firma
+vencida, de otra clave, por otro monto o repetida, firma de otro usuario, front-running del permit, fallback a una
+allowance existente, token sin permit y validaciones previas.
+
+**Estado de la dApp.** La dApp de Angular sigue usando `approve` + `createAgreement`: sumar el flujo con firma
+EIP-712 desde MetaMask es trabajo de frontend que no se hizo.

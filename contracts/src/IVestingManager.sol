@@ -34,6 +34,14 @@ interface IVestingManager {
         uint256 claimable; // igual a claimableAmount(id)
     }
 
+    /// @dev Firma EIP-2612 del pagador para aprobar el monto sin una transaccion de approve aparte.
+    struct PermitSignature {
+        uint256 deadline;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
     // ---------------------------------------------------------------- Eventos
     event AgreementCreated(
         uint256 indexed id,
@@ -89,6 +97,19 @@ interface IVestingManager {
         uint48 cliffTime,
         uint48 endTime,
         bool revocable
+    ) external returns (uint256 id);
+
+    /// @notice Permit (desafio opcional E): igual que createAgreement, pero el pagador aprueba el monto con una
+    ///         firma EIP-2612 en la misma transaccion, sin approve previo. Si el token no soporta permit, o la
+    ///         firma ya fue usada, se intenta igual con la allowance que ya exista; si no alcanza, revierte.
+    function createAgreementWithPermit(
+        address token,
+        address beneficiary,
+        uint256 amount,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable,
+        PermitSignature calldata sig
     ) external returns (uint256 id);
 
     /// @notice Batch payroll (desafio opcional C): crea un acuerdo por cada beneficiario con el mismo periodo y la
