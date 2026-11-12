@@ -47,6 +47,8 @@ interface IVestingManager {
     );
     event Claimed(uint256 indexed id, address indexed beneficiary, uint256 amount);
     event AgreementCancelled(uint256 indexed id, address indexed payer, uint256 refundedToPayer, uint256 vestedAtCancel);
+    /// @dev Se emite tras AgreementCreated solo cuando el acuerdo tiene cliff (desafio opcional A).
+    event CliffConfigured(uint256 indexed id, uint48 cliffTime);
 
     // ---------------------------------------------------------------- Errores
     error ZeroAddress();
@@ -61,6 +63,7 @@ interface IVestingManager {
     error NotRevocable(); // cancelar un acuerdo no revocable
     error AlreadyEnded(); // cancelar despues de endTime
     error NothingToClaim();
+    error InvalidCliff(); // el cliff debe estar entre startTime y endTime
 
     // -------------------------------------------------------------- Escrituras
     /// @notice Crea un acuerdo y bloquea `amount` de `token` (requiere approve previo).
@@ -69,6 +72,19 @@ interface IVestingManager {
         address beneficiary,
         uint256 amount,
         uint48 startTime,
+        uint48 endTime,
+        bool revocable
+    ) external returns (uint256 id);
+
+    /// @notice Igual que createAgreement pero con un cliff: antes de `cliffTime` no se devenga nada; desde ese
+    ///         momento se respeta el vesting lineal calculado desde `startTime`. `cliffTime` debe estar en
+    ///         [startTime, endTime] (desafio opcional A).
+    function createAgreementWithCliff(
+        address token,
+        address beneficiary,
+        uint256 amount,
+        uint48 startTime,
+        uint48 cliffTime,
         uint48 endTime,
         bool revocable
     ) external returns (uint256 id);
@@ -86,6 +102,9 @@ interface IVestingManager {
     function getAgreement(uint256 id) external view returns (Agreement memory);
     function getAgreementsByPayer(address payer) external view returns (uint256[] memory);
     function getAgreementsByBeneficiary(address beneficiary) external view returns (uint256[] memory);
+
+    /// @notice Cliff del acuerdo (timestamp). 0 significa que no tiene cliff.
+    function cliffOf(uint256 id) external view returns (uint48);
 
     /// @notice Lectura en lote: acuerdo + devengado + disponible de cada id, en el mismo orden.
     ///         Revierte con AgreementNotFound si algún id no existe.
