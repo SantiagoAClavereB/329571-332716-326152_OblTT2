@@ -6,6 +6,14 @@ remappings = ["@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/", 
 # El script de deploy escribe las direcciones en la carpeta publica de Angular.
 fs_permissions = [{ access = "read-write", path = "../frontend/public" }]
 
+# Redes para comparar costos (desafio opcional D). Las URL salen de variables de entorno: no hay claves ni
+# direcciones en el repo. Ver docs/DEPLOY_L2.md.
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
+arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"
+anvil = "http://127.0.0.1:8545"
+
 [invariant]
 # 64 secuencias de 40 llamadas aleatorias: suficiente para el invariante y rapido para correrlo seguido.
 runs = 64

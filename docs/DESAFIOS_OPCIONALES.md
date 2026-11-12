@@ -186,3 +186,19 @@ allowance existente, token sin permit y validaciones previas.
 
 **Estado de la dApp.** La dApp de Angular sigue usando `approve` + `createAgreement`: sumar el flujo con firma
 EIP-712 desde MetaMask es trabajo de frontend que no se hizo.
+
+## D. Deploy en L2
+
+**Estado: preparado, no ejecutado en una testnet.** Desplegar en una L2 real requiere una cuenta con fondos de
+prueba y un RPC con clave, y esos datos no están en el repo. Lo que sí se hizo y se probó en local:
+
+- Redes configuradas en `foundry.toml` (`sepolia`, `base_sepolia`, `arbitrum_sepolia`), con las URL tomadas de
+  variables de entorno. Se comprobó que `forge build` y los 111 tests siguen andando con esas variables sin definir.
+- `script/MeasureOps.s.sol`: ejecuta `createAgreement`, `claim` y `cancel` sobre un contrato desplegado.
+- `script/compare-costs.mjs`: calcula gas y costo en ETH de cada transacción, incluido el `l1Fee` de las L2 tipo OP
+  Stack.
+- Gas medido en local: `createAgreement` 262.310 (el primero) y 206.210 (el segundo), `claim` 78.257 y `cancel`
+  81.495.
+
+Los pasos para correrlo en Sepolia y en una L2, y la tabla de resultados reales (todavía vacía), están en
+[`DEPLOY_L2.md`](DEPLOY_L2.md). **Los costos en redes reales no se midieron.**
