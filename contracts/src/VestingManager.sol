@@ -13,8 +13,9 @@ import {IVestingManager} from "./IVestingManager.sol";
 contract VestingManager is IVestingManager, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /// @dev Los ids empiezan en 1 para que el id 0 nunca sea un acuerdo valido.
-    uint256 private _nextId = 1;
+    /// @dev Los ids empiezan en 1 para que el id 0 nunca sea un acuerdo valido. Es `internal` para que la variante
+    ///      upgradeable pueda fijarlo en `initialize` (detras de un proxy el valor inicial de arriba no se aplica).
+    uint256 internal _nextId = 1;
 
     mapping(uint256 id => Agreement) private _agreements;
     mapping(address payer => uint256[]) private _idsByPayer;

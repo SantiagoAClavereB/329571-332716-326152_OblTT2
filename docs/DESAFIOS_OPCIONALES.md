@@ -74,6 +74,72 @@ en `memory`, porque es un arreglo nuevo que se arma y se devuelve.
 individuales, atomicidad ante un elemento inválido, allowance insuficiente, token con comisión y la comparación de
 gas.
 
+## B. Upgradeabilidad (UUPS)
+
+**Qué hace.** `VestingManagerUpgradeable` es una variante de `VestingManager` pensada para usarse detrás de un
+proxy ERC-1967 con el patrón **UUPS**. El estado (acuerdos, ids, listados, cliffs, fondos) vive en el **proxy**; un
+upgrade cambia solo la lógica a la que apunta, sin tocar los datos.
+
+```
+dApp --> Proxy (ERC1967Proxy)  --delegatecall-->  Implementación V1  (upgradeToAndCall)-->  Implementación V2
+         guarda el estado y los fondos            solo lógica                                solo lógica
+```
+
+**Diseño.**
+
+- Es un contrato **aparte** que hereda de `VestingManager` + `Initializable` + `UUPSUpgradeable` de OpenZeppelin
+  (ya incluidos en la librería del proyecto, no se agregó ninguna dependencia). El contrato original no upgradeable
+  sigue siendo el que se despliega por defecto. El único cambio en él es `_nextId` de `private` a `internal`.
+- **`initialize(owner)`** reemplaza al constructor: fija el dueño y `_nextId = 1` (detrás de un proxy el valor
+  inicial de la declaración no se aplica). Solo puede llamarse una vez (`initializer`).
+- **El constructor de la implementación llama a `_disableInitializers()`**, así nadie puede inicializar ni tomar
+  el control de la implementación directamente.
+- **`_authorizeUpgrade`** exige ser el `owner`. En UUPS esa autorización vive en la implementación: si una versión
+  nueva la perdiera, el proxy no podría volver a actualizarse.
+- `transferOwnership(newOwner)` permite cambiar de dueño.
+
+**Cómo se demuestra que un upgrade conserva los acuerdos** (`test_upgrade_preservesAllAgreementsBalancesAndIds`):
+
+1. Se crean 4 acuerdos en estados distintos: uno activo con un reclamo parcial, uno no revocable, uno con cliff
+   que se cancela y uno completado.
+2. Se guarda el hash de `getAgreements` de los 4, de las listas por pagador y beneficiario, el balance de tokens
+   del proxy y el cliff.
+3. El owner actualiza a una `V2` de prueba, que agrega una variable de estado nueva al final del storage, una
+   función `version()` y una migración `initializeV2()` (`reinitializer(2)`).
+4. Se comprueba que la implementación cambió y que **todos los hashes y balances son idénticos**.
+5. Un segundo test confirma que después del upgrade los reclamos siguen respetando lo ya reclamado, un acuerdo no
+   revocable sigue sin poder cancelarse y los ids nuevos continúan la numeración.
+
+**Seguridad.**
+
+| Riesgo | Medida |
+|---|---|
+| Que cualquiera actualice | `onlyOwner` en `_authorizeUpgrade` (probado con un tercero y con el pagador) |
+| Inicializar de nuevo el proxy | `initializer`: la segunda llamada revierte con `InvalidInitialization` |
+| Tomar la implementación | `_disableInitializers()` en su constructor |
+| Actualizar a un contrato que no es UUPS | OpenZeppelin lo rechaza con `ERC1967InvalidImplementation` |
+| Llamar `upgradeToAndCall` en la implementación | Revierte con `UUPSUnauthorizedCallContext` |
+| Migración repetida | `reinitializer(2)`: no puede ejecutarse dos veces |
+
+**Limitaciones conocidas.**
+
+- **Riesgo de confianza.** El `owner` puede reemplazar la lógica y, en teoría, mover los fondos de los usuarios.
+  Es la consecuencia de cualquier contrato upgradeable. Lo razonable en producción sería un multisig con timelock;
+  acá es una sola cuenta.
+- **Orden del storage.** Una versión nueva solo puede **agregar** variables al final. No se probó una herramienta
+  automática de validación de layout.
+- **`ReentrancyGuard` detrás de un proxy.** Su valor inicial lo fija un constructor que solo corre en la
+  implementación, así que en el proxy parte en 0. Se comprobó que el guard sigue bloqueando la reentrada
+  (`test_upgradeable_reentrancyGuardStillWorksBehindTheProxy`, con el token malicioso).
+- **Dirección para la dApp.** `vestingManager` en `deployments.json` es el proxy y no cambia entre upgrades.
+
+**Despliegue.** `contracts/script/DeployUpgradeable.s.sol` despliega implementación y proxy, y guarda ambas
+direcciones. Acepta `DEPLOYMENTS_FILE` para escribir en otro archivo. Para usar la variante upgradeable con la
+dApp basta con correr este script en lugar de `Deploy.s.sol`.
+
+**Tests.** `contracts/test/VestingUpgradeable.t.sol`: funcionamiento detrás del proxy, inicialización,
+conservación de estado en el upgrade, autorización y cambio de dueño.
+
 ## E. Permit (EIP-2612)
 
 **Qué hace.** `createAgreementWithPermit(token, beneficiary, amount, startTime, endTime, revocable, sig)` permite
