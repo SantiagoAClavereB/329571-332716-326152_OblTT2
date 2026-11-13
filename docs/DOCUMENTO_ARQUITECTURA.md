@@ -47,7 +47,7 @@ Hay dos fronteras que determinan el diseño. La primera separa **lo que firma el
 | `WalletService` | Conexión con MetaMask; cuenta y red en *signals* | No habla con los contratos |
 | `VestingService` | Única pieza que habla con los contratos: lecturas, escrituras, historial desde eventos y traducción de errores | No decide cuándo recargar |
 | `TransactionService` | Sigue cada transacción (firmando → pendiente → confirmada o fallida) y avisa a las pantallas para que recarguen | |
-| Pantallas | `/crear`, `/acuerdos`, `/ingresos`, `/acuerdos/:id` y la billetera | No acceden a Ethers directamente |
+| Pantallas | `/crear`, `/acuerdos`, `/ingresos`, `/acuerdos/:id`, la billetera y `TxList` (avisos de transacciones, que solo usa `TransactionService`) | No acceden a Ethers directamente |
 
 ### 1.3 Decisiones de herramientas y por qué
 

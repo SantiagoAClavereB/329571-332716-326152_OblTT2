@@ -30,16 +30,18 @@
   <rect class="sub" x="40" y="60" width="820" height="130" rx="8"/>
   <text class="st" x="52" y="80">Pantallas</text>
   <g>
-    <rect class="box" x="55"  y="95" width="145" height="80" rx="6"/>
-    <text class="b" x="127.5" y="127">/crear</text><text class="t" x="127.5" y="148">approve + crear</text>
-    <rect class="box" x="216" y="95" width="145" height="80" rx="6"/>
-    <text class="b" x="288.5" y="127">/acuerdos</text><text class="t" x="288.5" y="148">pagador · cancelar</text>
-    <rect class="box" x="377" y="95" width="145" height="80" rx="6"/>
-    <text class="b" x="449.5" y="127">/ingresos</text><text class="t" x="449.5" y="148">beneficiario · reclamar</text>
-    <rect class="box" x="538" y="95" width="145" height="80" rx="6"/>
-    <text class="b" x="610.5" y="127">/acuerdos/:id</text><text class="t" x="610.5" y="148">detalle + historial</text>
-    <rect class="box" x="699" y="95" width="145" height="80" rx="6"/>
-    <text class="b" x="771.5" y="127">/ (Billetera)</text><text class="t" x="771.5" y="148">cuenta, red y saldo</text>
+    <rect class="box" x="55"  y="95" width="120" height="80" rx="6"/>
+    <text class="b" x="115" y="127">/crear</text><text class="t" x="115" y="148">approve + crear</text>
+    <rect class="box" x="189" y="95" width="120" height="80" rx="6"/>
+    <text class="b" x="249" y="127">/acuerdos</text><text class="t" x="249" y="148">pagador · cancelar</text>
+    <rect class="box" x="323" y="95" width="120" height="80" rx="6"/>
+    <text class="b" x="383" y="127">/ingresos</text><text class="t" x="383" y="146">beneficiario</text><text class="t" x="383" y="161">reclamar</text>
+    <rect class="box" x="457" y="95" width="120" height="80" rx="6"/>
+    <text class="b" x="517" y="127">/acuerdos/:id</text><text class="t" x="517" y="146">detalle</text><text class="t" x="517" y="161">+ historial</text>
+    <rect class="box" x="591" y="95" width="120" height="80" rx="6"/>
+    <text class="b" x="651" y="127">/ (Billetera)</text><text class="t" x="651" y="146">cuenta, red</text><text class="t" x="651" y="161">y saldo</text>
+    <rect class="box" x="725" y="95" width="120" height="80" rx="6"/>
+    <text class="b" x="785" y="127">TxList</text><text class="t" x="785" y="146">avisos de</text><text class="t" x="785" y="161">transacciones</text>
   </g>
   <line class="ln" x1="450" y1="190" x2="450" y2="215"/>
   <text class="lab" x="460" y="208">usan</text>
