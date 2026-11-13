@@ -18,7 +18,7 @@ for (const file of files) {
   const receipts = new Map((run.receipts ?? []).map((r) => [r.transactionHash.toLowerCase(), r]));
 
   console.log(`\n=== ${file}  (chainId ${run.chain ?? '?'})`);
-  console.log('operacion'.padEnd(18), 'gas usado'.padStart(11), 'gwei'.padStart(12), 'l1Fee (ETH)'.padStart(15), 'costo total (ETH)'.padStart(19));
+  console.log('operacion'.padEnd(18), 'gas usado'.padStart(11), 'gwei'.padStart(12), 'l1Fee (wei)'.padStart(15), 'costo total (ETH)'.padStart(19));
 
   let totalGas = 0n;
   let totalCost = 0n;
@@ -29,7 +29,8 @@ for (const file of files) {
     const name = (tx.function ?? tx.contractName ?? tx.transactionType ?? '?').split('(')[0];
     const gasUsed = big(receipt.gasUsed);
     const price = big(receipt.effectiveGasPrice);
-    // En las L2 de tipo OP Stack el recibo trae l1Fee: la tarifa por publicar los datos en L1.
+    // En las L2 de tipo OP Stack el recibo trae l1Fee: la tarifa por publicar los datos en L1. Se muestra en wei
+    // porque en testnet suele ser de unos cientos de wei y en ETH se veria como 0.
     const l1Fee = big(receipt.l1Fee);
     const cost = gasUsed * price + l1Fee;
 
@@ -39,7 +40,7 @@ for (const file of files) {
       name.padEnd(18),
       gasUsed.toString().padStart(11),
       gwei(price).toFixed(6).padStart(12),
-      toEth(l1Fee).toFixed(9).padStart(15),
+      l1Fee.toString().padStart(15),
       toEth(cost).toFixed(9).padStart(19),
     );
   }
