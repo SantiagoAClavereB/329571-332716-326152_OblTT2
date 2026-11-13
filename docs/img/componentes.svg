@@ -90,7 +90,7 @@
 
   <!-- Cadena -->
   <rect class="grp" x="330" y="590" width="900" height="290" rx="10"/>
-  <text class="gt" x="346" y="614">Cadena EVM · Anvil (chainId 31337) o testnet</text>
+  <text class="gt" x="346" y="614">Cadena EVM · Hardhat node (31337) o testnet</text>
 
   <rect class="main" x="350" y="640" width="270" height="130" rx="8"/>
   <text class="b" x="485" y="670">VestingManager</text>
@@ -118,17 +118,17 @@
 
   <!-- Foundry -->
   <rect class="grp" x="20" y="590" width="290" height="290" rx="10"/>
-  <text class="gt" x="36" y="614">Foundry</text>
+  <text class="gt" x="36" y="614">Hardhat</text>
   <rect class="box" x="40" y="635" width="250" height="75" rx="6"/>
-  <text class="b" x="165" y="662">Deploy.s.sol</text>
+  <text class="b" x="165" y="662">deploy.js</text>
   <text class="t" x="165" y="682">despliega y guarda direcciones</text>
-  <text class="t" x="165" y="699">(DeployUpgradeable: variante UUPS)</text>
+  <text class="t" x="165" y="699">(deployUpgradeable: variante UUPS)</text>
   <rect class="box" x="40" y="730" width="250" height="75" rx="6"/>
-  <text class="b" x="165" y="757">Tests · forge test</text>
-  <text class="t" x="165" y="777">unitarios · fuzzing · invariantes</text>
+  <text class="b" x="165" y="757">Tests · npm test</text>
+  <text class="t" x="165" y="777">unitarios · aleatorios · invariantes</text>
   <text class="t" x="165" y="794">reentrancy · EVM en memoria</text>
   <rect class="box" x="40" y="820" width="250" height="45" rx="6"/>
-  <text class="b" x="165" y="838">MeasureOps + compare-costs</text>
+  <text class="b" x="165" y="838">measureOps + compare-costs</text>
   <text class="t" x="165" y="855">gas por operación (desafío D)</text>
 
   <line class="ln" x1="290" y1="672" x2="350" y2="672"/>

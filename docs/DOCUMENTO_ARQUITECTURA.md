@@ -22,7 +22,7 @@ Construimos una dApp que administra acuerdos de pago salarial o de vesting con u
 | 13. Documentación | Diagrama, struct, estados, fórmula, eventos, bordes, limitaciones, L1 vs L2 | todo el documento |
 | 16. Desafíos opcionales | Cliff, UUPS, batch, L2, Permit | §12 |
 
-Los números de este documento (gas, tests, cobertura) salen de la ejecución real del repositorio con Foundry 1.9.0 y Solidity 0.8.24. Donde algo **no se midió o no se ejecutó**, lo decimos.
+Los números de este documento (gas, tests, cobertura) salen de la ejecución real del repositorio con Hardhat 2 y Solidity 0.8.28. Donde algo **no se midió o no se ejecutó**, lo decimos.
 
 ---
 
@@ -42,8 +42,8 @@ Hay dos fronteras que determinan el diseño. La primera separa **lo que firma el
 | `VestingManager` | Guarda todos los acuerdos, bloquea los fondos, calcula lo devengado y ejecuta creación, reclamo y cancelación | No conoce al frontend |
 | `VestingManagerUpgradeable` | Variante UUPS que reutiliza toda la lógica de `VestingManager` detrás de un proxy (desafío B) | No cambia el contrato original |
 | `MockToken` / `MockPermitToken` | ERC-20 de prueba con decimales configurables y `mint` abierto; el segundo agrega EIP-2612 | No se usan en producción |
-| `Deploy.s.sol`, `DeployUpgradeable.s.sol` | Despliegan los contratos y escriben las direcciones por `chainId` en `frontend/public/deployments.json` | No guardan claves |
-| `MeasureOps.s.sol` + `compare-costs.mjs` | Ejecutan las operaciones relevantes y calculan su costo por red (desafío D) | |
+| `deploy.js`, `deployUpgradeable.js` | Despliegan los contratos y escriben las direcciones por `chainId` en `frontend/public/deployments.json` | No guardan claves |
+| `measureOps.js` + `compare-costs.mjs` | Ejecutan las operaciones relevantes y calculan su costo por red (desafío D) | |
 | `WalletService` | Conexión con MetaMask; cuenta y red en *signals* | No habla con los contratos |
 | `VestingService` | Única pieza que habla con los contratos: lecturas, escrituras, historial desde eventos y traducción de errores | No decide cuándo recargar |
 | `TransactionService` | Sigue cada transacción (firmando → pendiente → confirmada o fallida) y avisa a las pantallas para que recarguen | |
@@ -65,29 +65,28 @@ La letra no evalúa el framework: la dApp y la integración Web3 valen 4 de los 
 
 **Qué decidimos y por qué.** Angular, por el criterio del plan: usar el framework que ya manejaba la persona responsable de la dApp. Las dos piezas de Angular que más pesaron fueron los **servicios con inyección de dependencias** (la lógica de billetera, contratos y transacciones queda en tres servicios con una responsabilidad cada uno, §11) y los **formularios reactivos** con validadores propios (dirección válida, fechas coherentes con la hora de la cadena). Dejamos acordado un plan B: si la prueba mínima de MetaMask no funcionaba para el 3/11, se evaluaba pasar a React. No hizo falta.
 
-#### Entorno de tests y deploy: Foundry o Hardhat
+#### Entorno de tests y deploy: Hardhat
 
-La clase 13 trabaja con Hardhat (tests en JavaScript con Mocha/Chai y `loadFixture`). Elegimos Foundry. Ambos cumplen lo que exige la letra (manipular el tiempo de forma reproducible, medir cobertura y probar reentrancy), así que la diferencia estuvo en los requisitos de seguridad.
+Usamos Hardhat, el mismo entorno de la clase 13: tests en JavaScript con Mocha y Chai, `loadFixture` y los *matchers* de Hardhat. Cumple todo lo que exige la letra: manipular el tiempo de forma reproducible, medir cobertura y probar reentrancy. Como la estructura de los tests es la que vimos en clase, cada caso de la letra se puede explicar con las mismas herramientas (§10.1).
 
-| | Foundry | Hardhat (según lo visto en clase) |
-|---|---|---|
-| Lenguaje de los tests | Solidity | JavaScript / TypeScript |
-| Fuzzing | Nativo (`testFuzz_*`) | No es parte del framework base |
-| Invariantes | Nativos (`invariant_*`, con *handlers*) | No es parte del framework base |
-| Tiempo | `vm.warp` | `time.setNextBlockTimestamp` (`hardhat-network-helpers`) |
-| Cobertura | `forge coverage` incluido | `npx hardhat coverage` |
-| Atacantes (reentrancy, token con comisión) | Contratos Solidity dentro de los propios tests | También son contratos Solidity, pero se orquestan desde JS |
+| Necesidad | Cómo la resolvemos |
+|---|---|
+| Lenguaje de los tests | JavaScript (Mocha + Chai + Ethers v6) |
+| Estado limpio en cada test | `loadFixture` |
+| Errores y eventos | `revertedWithCustomError` y `emit(...).withArgs(...)` |
+| Tiempo | `time.setNextBlockTimestamp` (`hardhat-network-helpers`) |
+| Cobertura | `npx hardhat coverage` (solidity-coverage) |
+| Atacantes (reentrancy, token con comisión) | Contratos Solidity en `src/mocks/` (`ReentrantToken`, `FeeToken`), orquestados desde los tests |
+| Entradas aleatorias e invariantes | Bucles con generador pseudoaleatorio de semilla fija (reproducibles), porque Hardhat no trae fuzzing nativo |
 
-**Por qué Foundry.** Los puntos de la sección 9 de la letra que son difíciles de cubrir con casos fijos (redondeo, «reclamar más de lo depositado», «el balance del contrato cubre lo pendiente») se prueban mejor con propiedades: fuzzing e invariantes son parte del propio framework y no requieren dependencias adicionales. Además los contratos atacantes (`ReentrantToken`, `FeeToken`) se escriben en el mismo lenguaje que los contratos auditados, lo que simplifica entender qué hace cada ataque durante la defensa. La suite completa (111 tests) corre en unos 6 segundos; no comparamos esa velocidad contra Hardhat.
-
-**Qué costó.** Foundry no es lo que vimos en clase. Para no perder lo aprendido adaptamos su estructura uno a uno (§10.1): el `describe/it` pasa a ser un contrato de test con funciones `test_*`, el `loadFixture` pasa a `setUp()`, y `revertedWithCustomError` pasa a `vm.expectRevert(Error.selector)`.
+**Qué hay que tener en cuenta.** Hardhat no trae fuzzing ni invariantes nativos, así que los escribimos nosotros: recorren entradas pseudoaleatorias con semilla fija y verifican las propiedades después de cada paso (§10.3). Es menos potente que un *fuzzer* con minimización de casos, pero es reproducible y cubre los puntos de la sección 9 de la letra que son difíciles de cubrir con casos fijos (redondeo, «reclamar más de lo depositado», «el balance del contrato cubre lo pendiente»). La red en memoria de Hardhat se configura con `allowBlocksWithSameTimestamp`, para poder mirar el estado en el segundo X y enviar una transacción exactamente en X; sin eso no se podrían probar los límites «justo en `endTime`».
 
 #### Blockchain local, billetera y librería
 
-- **Anvil** (viene con Foundry): lo elegimos porque permite `--block-time 1` y mover el reloj con `evm_increaseTime`. Sin `--block-time`, Anvil mina un bloque solo cuando llega una transacción, así que `block.timestamp` queda fijo y el devengado «no avanza» en la demo. Es consecuencia directa de que la letra define el vesting en función del tiempo.
+- **Nodo local de Hardhat** (`npm run node`): lo usamos porque se puede configurar para minar un bloque por segundo y mover el reloj con `evm_increaseTime`. Con minado solo por transacción, `block.timestamp` queda fijo y el devengado «no avanza» en la demo. Es consecuencia directa de que la letra define el vesting en función del tiempo. Usa el chainId 31337 y las mismas cuentas de prueba públicas de siempre, por lo que las direcciones del deploy no cambian.
 - **MetaMask** y **Ethers.js v6**: MetaMask es la billetera EVM de uso general que pide la sección 12. Ethers devuelve montos como `bigint`; la dApp convierte con `formatUnits`/`parseUnits` usando los `decimals()` del token y nunca asume 18.
-- **Git Bash en lugar de WSL**: el plan original recomendaba WSL en Windows. La guía de instalación posterior lo descartó: Foundry corre en Git Bash, y en WSL hay que mantener dos entornos (rutas, Node, navegador). Usamos Git Bash en todas las máquinas y la misma versión de Foundry (1.9.0) para que los resultados de `forge test` y de cobertura sean comparables.
-- **Remix**: lo propone el plan para prototipar. Los tests, la cobertura y el deploy quedan solo en Foundry, para que el único camino reproducible sea el del repositorio.
+- **Sin dependencias fuera de npm**: Hardhat y OpenZeppelin se instalan con `npm install` dentro de `contracts/`, con la versión de OpenZeppelin fija en `package.json`. No hace falta instalar ninguna herramienta aparte ni usar WSL: alcanza con Node.js en cualquier terminal.
+- **Remix**: no lo usamos. Los tests, la cobertura y el deploy quedan en Hardhat, para que el único camino reproducible sea el del repositorio.
 
 ### 1.4 Un contrato para todos los acuerdos, no uno por acuerdo
 
@@ -381,16 +380,16 @@ La firma viaja visible en el *mempool*: cualquiera puede ejecutar `token.permit(
 
 | Punto de la sección 9 | Medida | Test que lo demuestra |
 |---|---|---|
-| Control de acceso | `msg.sender` contra `beneficiary` o `payer` | `test_claim_byUnauthorizedAccountReverts`, `test_cancel_byUnauthorizedAccountReverts` |
-| Doble reclamo | `claimable = vested − claimed`; tras reclamar `claimed` sube | `test_claim_doubleClaimReverts`, `test_claim_afterFullClaimReverts` |
-| Cancelación no autorizada | `NotPayer` | `test_cancel_byUnauthorizedAccountReverts` |
-| Cancelación de no revocables | `NotRevocable` | `test_cancel_nonRevocableReverts` |
-| Reclamos antes del inicio | Devengado 0, `NothingToClaim` | `test_claim_beforeStartReverts`, `test_claim_exactlyAtStartReverts` |
-| Reclamos posteriores a una cancelación | `vestedAtCancel` congelado, `claim` lo respeta | `test_cancel_preservesVestedAmountForBeneficiary`, `test_cancel_partialClaimBeforeCancel` |
-| Valores de tiempo inválidos | `InvalidTimeRange`, `InvalidCliff`, `AlreadyEnded` | `test_create_revertsOnInvalidTimes`, `test_cancel_exactlyAtEndReverts` |
-| Redondeos | `mulDiv` hacia abajo | `test_rounding_*`, fuzzing e invariantes |
-| Reentrancy o token malicioso | `nonReentrant` + estado antes de transferir | `test_reentrancy_*` (4 ataques) |
-| Validación de parámetros | `_validate` antes de cualquier transferencia | `test_create_revertsOnInvalidParams`, `test_batch_*` |
+| Control de acceso | `msg.sender` contra `beneficiary` o `payer` | describe Reclamos («solo el beneficiario puede reclamar») y describe Cancelación («solo el pagador puede cancelar») |
+| Doble reclamo | `claimable = vested − claimed`; tras reclamar `claimed` sube | Reclamos: «un segundo reclamo en el mismo instante revierte con NothingToClaim», «reclamar despues de haber retirado todo revierte» |
+| Cancelación no autorizada | `NotPayer` | Cancelación: «solo el pagador puede cancelar (ni un tercero ni el beneficiario)» |
+| Cancelación de no revocables | `NotRevocable` | Cancelación: «un acuerdo no revocable no se puede cancelar» |
+| Reclamos antes del inicio | Devengado 0, `NothingToClaim` | Reclamos: «reclamar antes del inicio revierte», «reclamar exactamente en el inicio revierte» |
+| Reclamos posteriores a una cancelación | `vestedAtCancel` congelado, `claim` lo respeta | Cancelación: «lo devengado queda congelado y el beneficiario lo puede reclamar despues», «con un reclamo parcial previo, lo disponible es devengado menos reclamado» |
+| Valores de tiempo inválidos | `InvalidTimeRange`, `InvalidCliff`, `AlreadyEnded` | Creación: «revierte con tiempos invalidos»; Cancelación: «cancelar exactamente en el fin revierte con AlreadyEnded» |
+| Redondeos | `mulDiv` hacia abajo | describe Redondeo, entradas aleatorias e invariantes |
+| Reentrancy o token malicioso | `nonReentrant` + estado antes de transferir | describe Reentrancy (4 ataques) |
+| Validación de parámetros | `_validate` antes de cualquier transferencia | Creación: «revierte con parametros invalidos»; `VestingBatch.test.js` |
 
 ### 7.2 Reentrancy: dos defensas a la vez
 
@@ -412,13 +411,13 @@ La letra prefiere custom errors a strings de revert. Además de eso, en este con
 
 ### 7.5 Dependencia del tiempo
 
-La letra define todo en función del tiempo y el contrato usa `block.timestamp`, que el productor del bloque puede desplazar por unos segundos. Es aceptable porque la escala del vesting son días o meses y una desviación de segundos mueve el devengado en una fracción insignificante del total. El linter de Foundry avisa de este uso (`block-timestamp`); está revisado y es inherente al requisito.
+La letra define todo en función del tiempo y el contrato usa `block.timestamp`, que el productor del bloque puede desplazar por unos segundos. Es aceptable porque la escala del vesting son días o meses y una desviación de segundos mueve el devengado en una fracción insignificante del total. Es el aviso típico de un linter (`block-timestamp`); está revisado y es inherente al requisito.
 
-La dApp, por la misma razón, calcula el progreso con la **hora del último bloque** (`chainTime`) y nunca con `Date.now()`: sin eso, tras adelantar el reloj de Anvil las fechas y el devengado mostrados no coincidirían con los que valida el contrato.
+La dApp, por la misma razón, calcula el progreso con la **hora del último bloque** (`chainTime`) y nunca con `Date.now()`: sin eso, tras adelantar el reloj de la cadena local las fechas y el devengado mostrados no coincidirían con los que valida el contrato.
 
 ### 7.6 Avisos del linter
 
-`forge build` emite avisos de `block-timestamp`, `reentrancy-events` e `incorrect-strict-equality`. Los tres están revisados: el primero es inherente al requisito; el segundo no aplica porque las funciones que emiten cerca de una llamada externa están protegidas con `nonReentrant`; el tercero es `claimedAmount == totalAmount`, la condición exacta de «completado».
+El compilador de Hardhat no emite avisos, pero un linter de Solidity (por ejemplo el de Foundry) suele marcar tres puntos: `block-timestamp`, `reentrancy-events` e `incorrect-strict-equality`. Los tres están revisados a mano: el primero es inherente al requisito; el segundo no aplica porque las funciones que emiten cerca de una llamada externa están protegidas con `nonReentrant`; el tercero es `claimedAmount == totalAmount`, la condición exacta de «completado».
 
 ---
 
@@ -451,7 +450,7 @@ La dApp, por la misma razón, calcula el progreso con la **hora del último bloq
 | Monto enorme (`uint128.max`) | `mulDiv` no desborda |
 | Cliff igual a `startTime` o a `endTime` | Permitido; con `cliff == endTime` el acuerdo es «todo o nada» |
 | Cliff `0` explícito en `createAgreementWithCliff` | Rechazado con `InvalidCliff`; para «sin cliff» se usa `createAgreement` |
-| Pagador igual al beneficiario | Permitido: es válido y es lo que usa `MeasureOps` |
+| Pagador igual al beneficiario | Permitido: es válido y es lo que usa `measureOps.js` |
 | Mismo beneficiario repetido en un batch | Permitido; crea dos acuerdos independientes |
 | Batch con un elemento inválido | Revierte **todo** y no mueve fondos: se valida todo el lote antes de transferir |
 | Permit con firma vencida, repetida o de otro monto | `permit` falla en silencio y el cobro falla con `ERC20InsufficientAllowance`; nunca se crea un acuerdo sin fondos |
@@ -466,50 +465,52 @@ La dApp, por la misma razón, calcula el progreso con la **hora del último bloq
 
 Seguimos el checklist de calidad de la clase: tests reproducibles desde cero, casos válidos e inválidos, usuarios autorizados y no autorizados, eventos, errores personalizados, saldos y estados verificados con aserciones, tiempo manipulado de forma determinista con prueba de límites y reporte de cobertura.
 
-| Clase 13 (Hardhat) | Nuestro equivalente (Foundry) |
+| Práctica de la clase 13 | Cómo la aplicamos |
 |---|---|
-| `describe` / `it` | Un contrato de test con funciones `test_*` |
-| `loadFixture` + snapshot | `setUp()`: estado limpio en cada test |
-| `expect(...).to.be.revertedWithCustomError` | `vm.expectRevert(Error.selector)` |
-| `emit(...).withArgs(...)` | `vm.expectEmit(...)` seguido del `emit` esperado |
-| `time.setNextBlockTimestamp` | `vm.warp` |
-| Antes / exactamente / después del vencimiento | Siempre probamos los tres: p. ej. `test_cancel_oneSecondBeforeEndWorks`, `test_cancel_exactlyAtEndReverts`, `test_cancel_afterEndReverts` |
+| `describe` / `it` | Un `describe` por contrato y por tema (Creación, Devengado, Reclamos, Cancelación, Redondeo, Reentrancy…), un `it` por caso |
+| `loadFixture` + snapshot | Un `deployFixture` por archivo: estado limpio en cada test |
+| `expect(...).to.be.revertedWithCustomError` | Igual, con el contrato que declara el error |
+| `emit(...).withArgs(...)` | Igual |
+| `time.setNextBlockTimestamp` | `at(ts)` (la próxima transacción se mina en `ts`) y `warp(ts)` (mina un bloque en `ts` para leer el estado en ese instante), en `test/helpers.js` |
+| Antes / exactamente / después del vencimiento | Siempre probamos los tres: p. ej. «un segundo antes del fin todavía se puede cancelar», «cancelar exactamente en el fin revierte con AlreadyEnded» y «cancelar después del fin revierte con AlreadyEnded» |
 
-Los tests corren en la EVM en memoria de `forge`, no contra Anvil: así `vm.warp` es determinista y cada ejecución parte de cero, que es lo que pide la letra con «manipular el tiempo de forma reproducible».
+Los tests corren en la red en memoria de Hardhat, no contra el nodo local: así el tiempo es determinista y cada ejecución parte de cero, que es lo que pide la letra con «manipular el tiempo de forma reproducible».
 
 ### 10.2 Los 16 casos mínimos de la letra
 
 | Caso exigido | Test |
 |---|---|
-| Creación válida | `test_create_valid` |
-| Parámetros inválidos | `test_create_revertsOnInvalidParams`, `test_create_revertsOnInvalidTimes` |
-| Sin allowance suficiente | `test_create_revertsWithoutEnoughAllowance`, `test_create_revertsWithPartialAllowance` |
-| Devengado antes de `startTime` | `test_vested_beforeStartIsZero`, `test_vested_exactlyAtStartIsZero` |
-| Devengado durante el período | `test_vested_duringPeriodIsProportional` |
-| Devengado al finalizar | `test_vested_atEndIsTotal`, `test_vested_afterEndStaysAtTotal` |
-| Reclamo parcial | `test_claim_partial` |
-| Múltiples reclamos | `test_claim_multipleClaimsAddUpToTotalAndComplete` |
-| Doble reclamo | `test_claim_doubleClaimReverts` |
-| Reclamo no autorizado | `test_claim_byUnauthorizedAccountReverts` |
-| Cancelación válida | `test_cancel_valid` |
-| Cancelación no autorizada | `test_cancel_byUnauthorizedAccountReverts` |
-| Cancelación de no revocable | `test_cancel_nonRevocableReverts` |
-| Devolución del saldo no devengado | `test_cancel_refundsExactlyTheUnvestedAmount` |
-| Saldo devengado preservado tras cancelar | `test_cancel_preservesVestedAmountForBeneficiary` |
-| Bordes de redondeo | `test_rounding_*` |
-| Defensa frente a reentrancy | `test_reentrancy_*` |
+Todos están en `contracts/test/VestingManager.test.js`; se indica el `describe` y el `it`.
+
+| Caso exigido | Test |
+|---|---|
+| Creación válida | Creación: «crea un acuerdo valido, bloquea los fondos y emite AgreementCreated» |
+| Parámetros inválidos | Creación: «revierte con parametros invalidos», «revierte con tiempos invalidos» |
+| Sin allowance suficiente | Creación: «revierte si no hay allowance», «revierte si la allowance es menor al monto» |
+| Devengado antes de `startTime` | Devengado: «antes del inicio es 0», «exactamente en el inicio es 0» |
+| Devengado durante el período | Devengado: «durante el periodo es proporcional al tiempo» |
+| Devengado al finalizar | Devengado: «exactamente en el fin es el total», «despues del fin sigue en el total» |
+| Reclamo parcial | Reclamos: «reclama una parte, emite Claimed y actualiza los saldos» |
+| Múltiples reclamos | Reclamos: «varios reclamos suman el total y el acuerdo pasa a Completed» |
+| Doble reclamo | Reclamos: «un segundo reclamo en el mismo instante revierte con NothingToClaim» |
+| Reclamo no autorizado | Reclamos: «solo el beneficiario puede reclamar (ni el pagador ni un tercero)» |
+| Cancelación válida | Cancelación: «cancela un acuerdo valido: congela lo devengado y devuelve el resto» |
+| Cancelación no autorizada | Cancelación: «solo el pagador puede cancelar (ni un tercero ni el beneficiario)» |
+| Cancelación de no revocable | Cancelación: «un acuerdo no revocable no se puede cancelar» |
+| Devolución del saldo no devengado | Cancelación: «devuelve exactamente lo no devengado» |
+| Saldo devengado preservado tras cancelar | Cancelación: «lo devengado queda congelado y el beneficiario lo puede reclamar despues» |
+| Bordes de redondeo | Redondeo (4 tests) |
+| Defensa frente a reentrancy | Reentrancy (5 tests) |
 
 ### 10.3 Fuzzing e invariantes
 
-Fuzzing (`testFuzz_*`): el devengado nunca supera el total ni baja con el tiempo; muchos reclamos parciales suman exactamente el depósito y no dejan polvo; cancelar reparte exactamente el depósito entre pagador y beneficiario.
+Entradas aleatorias (describe «Fuzzing», con semilla fija para que sean reproducibles): el devengado nunca supera el total ni baja con el tiempo; muchos reclamos parciales suman exactamente el depósito y no dejan polvo; cancelar reparte exactamente el depósito entre pagador y beneficiario.
 
-Invariantes (`invariant_*`, con un *handler* que crea, reclama, cancela y avanza el tiempo al azar, con tres actores): (1) el balance de tokens del contrato **siempre cubre** lo pendiente (`total − reclamado` en los activos y `vestedAtCancel − reclamado` en los cancelados); (2) para cada acuerdo, `reclamado ≤ devengado ≤ total`; (3) un acuerdo `Completed` tiene todo reclamado. Es la prueba directa del riesgo que aceptamos al elegir un único contrato (§1.4).
-
-Configuramos 64 secuencias de 40 llamadas (`foundry.toml`): con los valores por defecto, la suite tardaba más de diez minutos por el recorrido de todos los acuerdos en cada paso.
+Invariantes (`test/VestingInvariant.test.js`): 12 secuencias de 30 pasos en las que, al azar, tres actores crean, reclaman o cancelan acuerdos y el tiempo avanza. Después de **cada paso** se verifica: (1) el balance de tokens del contrato **siempre cubre** lo pendiente (`total − reclamado` en los activos y `vestedAtCancel − reclamado` en los cancelados); (2) para cada acuerdo, `reclamado ≤ devengado ≤ total`; (3) un acuerdo `Completed` tiene todo reclamado. Es la prueba directa del riesgo que aceptamos al elegir un único contrato (§1.4). Las llamadas que revierten (por ejemplo reclamar sin saldo disponible) son parte normal de la secuencia y se ignoran.
 
 ### 10.4 Cobertura
 
-La suite tiene **111 tests** que pasan en unos 6 segundos. Cobertura de líneas medida con `forge coverage` (excluyendo scripts y tests): **96,75 % en total**, con **100 %** de líneas y de ramas en `VestingManager.sol` y `VestingManagerUpgradeable.sol` (la letra pide 75 %). Los dos tokens de prueba quedan en 66,67 %, porque `mint` y `decimals` se ejercitan poco; no es lógica del sistema.
+La suite tiene **111 tests** que pasan en unos 8 segundos. Cobertura medida con `npm run coverage` (solidity-coverage, sobre `src/`): **96,64 % de líneas en total** (incluye los contratos de prueba de `src/mocks/`), con **100 % de líneas** en `VestingManager.sol` y `VestingManagerUpgradeable.sol` y **93,33 % de ramas** en `VestingManager.sol` (la letra pide 75 %). Los dos tokens de prueba quedan en 66,67 % de líneas, porque `mint` y `decimals` se ejercitan poco; no es lógica del sistema. `ProxyImports.sol` figura en 0 % porque solo existe para que Hardhat genere el artifact del proxy.
 
 La cobertura mide qué líneas se ejecutaron, no que las aserciones sean buenas. Por eso importan más las propiedades de §10.3 que el porcentaje.
 
@@ -520,7 +521,7 @@ La cobertura mide qué líneas se ejecutaron, no que las aserciones sean buenas.
 Tres servicios con una responsabilidad cada uno, y pantallas que no acceden a Ethers directamente:
 
 - **`WalletService`** guarda cuenta y red en *signals* y escucha `accountsChanged` y `chainChanged` de MetaMask. Los manejadores se ejecutan con `NgZone.run`, porque los eventos del navegador pueden no refrescar la pantalla de Angular por sí solos. Con signals, cambiar de cuenta o de red actualiza todas las pantallas sin recargar.
-- **`VestingService`** es la única pieza que habla con los contratos. Resuelve la dirección del contrato desde `deployments.json` según la red conectada, verifica que haya código en esa dirección (para el caso de reiniciar Anvil sin redesplegar), cachea los datos del token (`decimals()` se lee, no se asume 18), arma el historial desde eventos y traduce los errores del contrato al español.
+- **`VestingService`** es la única pieza que habla con los contratos. Resuelve la dirección del contrato desde `deployments.json` según la red conectada, verifica que haya código en esa dirección (para el caso de reiniciar el nodo local sin redesplegar), cachea los datos del token (`decimals()` se lee, no se asume 18), arma el historial desde eventos y traduce los errores del contrato al español.
 - **`TransactionService`** da seguimiento a cada transacción (`signing → pending → confirmed | failed`) e incrementa un contador (`refreshTick`) que las pantallas observan con un `effect` para recargar solas cuando algo se confirma. Es lo que cumple «actualizar la información luego de una transacción sin requerir recargar manualmente» de la sección 12.
 
 **Una llamada en lugar de tres.** Las listas usan `getAgreements` (§5.5): un solo `eth_call` para todo el listado, y las pantallas de pagador y de beneficiario comparten ese camino.
@@ -541,11 +542,11 @@ Los cinco desafíos están hechos en el contrato (cada uno en su propio commit),
 | **C. Batch payroll** | `createAgreementsBatch`: un acuerdo por beneficiario con **una sola** transferencia por la suma | Atómico: se valida todo antes de mover fondos. Con 10 acuerdos cuesta **1 795 728 gas contra 2 338 087** al crearlos uno por uno: **23 % menos** (mismo estado inicial, medido con `vm.snapshotState`) |
 | **E. Permit** | `createAgreementWithPermit` | `try/catch` en `permit` contra el *griefing* (§6.4) |
 | **B. UUPS** | `VestingManagerUpgradeable` detrás de un `ERC1967Proxy` | Variante **aparte**, no modificar el contrato original (abajo) |
-| **D. L2** | Redes en `foundry.toml`, `MeasureOps` y `compare-costs` | **No se desplegó en ninguna testnet**: falta una cuenta con fondos y un RPC |
+| **D. L2** | Redes en `hardhat.config.js`, `measureOps.js` y `compare-costs` | **No se desplegó en ninguna testnet**: falta una cuenta con fondos y un RPC |
 
 **UUPS: variante aparte y no una modificación.** La alternativa era convertir `VestingManager` en upgradeable. Elegimos no tocarlo: es el contrato probado al 100 % de cobertura y el que se despliega por defecto, y volverlo upgradeable cambiaría su modelo de confianza y su constructor para todos. La variante hereda la lógica (`contract VestingManagerUpgradeable is VestingManager, Initializable, UUPSUpgradeable`) y solo cambia lo mínimo: `initialize` reemplaza al constructor, el constructor de la implementación llama a `_disableInitializers()`, y `_authorizeUpgrade` exige ser `owner`. Entre los patrones de proxy elegimos UUPS porque la autorización del upgrade vive en la implementación, lo que hace al proxy más liviano; el riesgo que acepta es que una versión que pierda `_authorizeUpgrade` deja el proxy sin posibilidad de actualizarse.
 
-**Cómo se demuestra que un upgrade preserva los acuerdos.** `test_upgrade_preservesAllAgreementsBalancesAndIds` crea cuatro acuerdos en estados distintos (activo con reclamo parcial, no revocable, con cliff cancelado y completado), guarda el hash de todas las lecturas, actualiza a una V2 de prueba (que agrega una variable de estado nueva al final y una migración con `reinitializer(2)`) y comprueba que los hashes, los listados, el cliff, los fondos y el `owner` son idénticos. Otro test comprueba que la guarda de reentrancia sigue bloqueando detrás del proxy: su valor inicial lo fija un constructor que solo corre en la implementación, así que en el proxy parte en 0.
+**Cómo se demuestra que un upgrade preserva los acuerdos.** el test «conserva todos los acuerdos, saldos e ids» (`VestingUpgradeable.test.js`) crea cuatro acuerdos en estados distintos (activo con reclamo parcial, no revocable, con cliff cancelado y completado), guarda el hash de todas las lecturas, actualiza a una V2 de prueba (que agrega una variable de estado nueva al final y una migración con `reinitializer(2)`) y comprueba que los hashes, los listados, el cliff, los fondos y el `owner` son idénticos. Otro test comprueba que la guarda de reentrancia sigue bloqueando detrás del proxy: su valor inicial lo fija un constructor que solo corre en la implementación, así que en el proxy parte en 0.
 
 **Riesgo de confianza que aceptamos al elegir UUPS:** el `owner` puede reemplazar la lógica y, en teoría, mover los fondos. En producción debería ser un multisig con *timelock*; acá es una sola cuenta. Es la razón por la que el plan original había dejado afuera este desafío.
 
@@ -626,8 +627,8 @@ Las primeras nueve las fijó el plan y las confirmamos. Las demás surgieron al 
 | 11 | **Estado `Completed` explícito y error `NotRevocable`** | Derivar «completado» de los montos | La letra lo nombra (sección 3); lectura directa en la dApp (§2.1) | Revisión contra la letra |
 | 12 | 16 tests mínimos, no 17 | — | El plan decía 17; la letra enumera 16 (sección 11) | Revisión contra la letra |
 | 13 | **`getAgreements` con `calldata` y retorno `AgreementSummary[]`** | Retorno `Agreement[]` | Una llamada por listado y ejemplo real de `calldata` (§5.4, §5.5) | Integración |
-| 14 | Git Bash, no WSL; Foundry 1.9.0 en las tres máquinas | WSL | Una sola versión y un solo entorno (§1.3) | Guía de instalación |
-| 15 | Tests en Foundry traduciendo la estructura de la clase 13 | Hardhat | Fuzzing e invariantes nativos (§1.3, §10.1) | Plan + clase |
+| 14 | Todo se instala con npm; sin herramientas aparte ni WSL | Foundry (instalación propia, Git Bash o WSL) | Un solo comando de instalación y un solo entorno (§1.3) | Guía de instalación |
+| 15 | Tests en Hardhat con la estructura de la clase 13 | Foundry | Es lo visto en clase; fuzzing e invariantes quedan como bucles con semilla fija (§1.3, §10.1) | Plan + clase |
 | 16 | Invariantes con 64 × 40 | Valores por defecto (256 × 500) | La suite tardaba más de 10 minutos | Implementación |
 | 17 | Cliff en un mapping aparte | Campo en el struct | No cambiar el ABI de la dApp (§3.2) | Desafío A |
 | 18 | Batch atómico con una sola `transferFrom` | Varias llamadas o lote parcial | −23 % de gas; todo o nada (§12) | Desafío C |
@@ -635,7 +636,7 @@ Las primeras nueve las fijó el plan y las confirmamos. Las demás surgieron al 
 | 20 | UUPS como contrato aparte | Modificar `VestingManager` | No tocar el contrato probado (§12) | Desafío B |
 | 21 | `_nextId` pasa de `private` a `internal` | Mantenerlo `private` | La variante upgradeable debe fijarlo en `initialize` | Desafío B |
 | 22 | Deploy en L2 solo preparado; claves en keystore cifrado, no en variables | Clave privada por línea de comandos o `.env` | Una clave en el repo o en el historial de la terminal es el riesgo evitable | Desafío D |
-| 23 | `deployments.json` fuera del repositorio (generado por el script) | Versionarlo | Las direcciones cambian en cada Anvil y se pisarían entre integrantes | Implementación |
+| 23 | `deployments.json` fuera del repositorio (generado por el script) | Versionarlo | Las direcciones cambian en cada nodo local y se pisarían entre integrantes | Implementación |
 | 24 | La dApp usa la hora de la cadena | `Date.now()` | Coherencia con lo que valida el contrato (§7.5) | dApp |
 | 25 | Entregar el código **sin** `.git`, `node_modules`, `.angular`, `dist`, `out` y `cache` | Incluir `.git` | El proyecto sin esas carpetas pesa ~18 MB; con `.git` (~59 MB por los submódulos) supera los 40 MB permitidos | Entrega |
 
@@ -646,10 +647,10 @@ Las primeras nueve las fijó el plan y las confirmamos. Las demás surgieron al 
 Pasos completos en el `README.md`. Resumen:
 
 ```bash
-anvil --block-time 1                       # terminal 1: red local
-cd contracts && forge test                 # 111 tests
-forge coverage --no-match-coverage "script|test"
-forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast \
-  --unlocked --sender 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+cd contracts && npm install                # una vez
+npm test                                   # 111 tests
+npm run coverage                           # cobertura por archivo
+npm run node                               # terminal 1: red local (queda abierta)
+npm run deploy:local                       # terminal 2: despliega y escribe deployments.json
 cd ../frontend && npm install && npm start # dApp en http://localhost:4200
 ```

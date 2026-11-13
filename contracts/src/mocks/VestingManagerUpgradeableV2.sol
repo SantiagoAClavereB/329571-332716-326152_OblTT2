@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {VestingManagerUpgradeable} from "../../src/VestingManagerUpgradeable.sol";
+import {VestingManagerUpgradeable} from "../VestingManagerUpgradeable.sol";
 
 /// @notice "Version 2" de prueba: agrega una variable de estado NUEVA al final del storage y una funcion nueva.
 ///         Sirve para demostrar que un upgrade conserva los acuerdos y permite migrar datos con `reinitializer`.

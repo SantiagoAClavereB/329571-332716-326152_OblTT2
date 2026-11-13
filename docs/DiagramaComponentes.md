@@ -29,7 +29,7 @@ flowchart TB
 
   MM["MetaMask<br/>guarda las claves y firma"]
 
-  subgraph CHAIN["Anvil — red local EVM, chainId 31337"]
+  subgraph CHAIN["Hardhat node — red local EVM, chainId 31337"]
     direction LR
     VM["VestingManager<br/>acuerdos + fondos bloqueados<br/>createAgreement (+Cliff · Batch · Permit)<br/>claim · cancel"]
     TK["Token ERC-20<br/>MockToken 6 dec. · MockPermitToken<br/>u otro sin comisión"]
@@ -38,11 +38,11 @@ flowchart TB
     PX -. "delegatecall" .-> VM
   end
 
-  subgraph FOUNDRY["Foundry"]
+  subgraph FOUNDRY["Hardhat"]
     direction LR
-    DEP["script/Deploy.s.sol<br/>(DeployUpgradeable: variante UUPS)"]
-    TST["Tests: unitarios, fuzzing,<br/>invariantes, reentrancy<br/>EVM en memoria de forge"]
-    MEA["MeasureOps + compare-costs<br/>gas por operación (desafío D)"]
+    DEP["script/deploy.js<br/>(deployUpgradeable: variante UUPS)"]
+    TST["Tests: unitarios, aleatorios,<br/>invariantes, reentrancy<br/>red en memoria de Hardhat"]
+    MEA["measureOps + compare-costs<br/>gas por operación (desafío D)"]
   end
 
   WS <-- "EIP-1193<br/>cuenta, red y eventos" --> MM
@@ -58,11 +58,11 @@ flowchart TB
 |---|---|
 | **VestingManager** | Un solo contrato para todos los acuerdos (`mapping(id => Agreement)`). Recibe y bloquea los fondos, calcula lo devengado y ejecuta reclamos y cancelaciones. Emite `AgreementCreated`, `Claimed` y `AgreementCancelled` |
 | **Token ERC-20** | Medio de pago. En local es `MockToken` (6 decimales, `mint` abierto), pero el contrato acepta cualquier ERC-20 sin comisión por transferencia |
-| **Deploy.s.sol** | Despliega los tokens de prueba y el VestingManager, y deja las direcciones en `frontend/public/deployments.json` |
-| **VestingManagerUpgradeable** | Variante UUPS del VestingManager detrás de un proxy ERC-1967 (desafío opcional B). Reutiliza toda su lógica; `DeployUpgradeable.s.sol` la despliega |
+| **deploy.js** | Despliega los tokens de prueba y el VestingManager, y deja las direcciones en `frontend/public/deployments.json` |
+| **VestingManagerUpgradeable** | Variante UUPS del VestingManager detrás de un proxy ERC-1967 (desafío opcional B). Reutiliza toda su lógica; `deployUpgradeable.js` la despliega |
 | **MockPermitToken** | Token de prueba con soporte EIP-2612, para el flujo de creación con una sola transacción (desafío opcional E) |
-| **MeasureOps + compare-costs** | Ejecutan las operaciones relevantes y calculan su gas y costo por red (desafío opcional D) |
-| **Tests** | Corren en la EVM en memoria de forge, no en Anvil. Manejan el tiempo con `vm.warp` y usan tokens maliciosos (`ReentrantToken`, `FeeToken`) |
+| **measureOps + compare-costs** | Ejecutan las operaciones relevantes y calculan su gas y costo por red (desafío opcional D) |
+| **Tests** | Corren en la red en memoria de Hardhat, no en el nodo local. Manejan el tiempo con `time.setNextBlockTimestamp` y usan tokens maliciosos (`ReentrantToken`, `FeeToken`) |
 | **MetaMask** | Guarda las claves y firma. La dApp nunca ve una private key |
 | **WalletService** | Conecta la billetera, guarda la cuenta y la red en signals, y escucha `accountsChanged` y `chainChanged` |
 | **VestingService** | Única pieza que habla con los contratos: lecturas, escrituras, historial a partir de eventos y traducción de errores al español. Usa el provider y el signer de `WalletService` |

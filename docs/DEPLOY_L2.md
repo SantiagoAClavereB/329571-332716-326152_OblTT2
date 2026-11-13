@@ -1,33 +1,31 @@
 # Deploy en L2 y comparación de costos (desafío opcional D)
 
 > **Estado: preparado, pero NO ejecutado en una testnet.** Desplegar en una L2 real exige una cuenta con fondos de
-> prueba y un RPC con clave, y esos datos no están en el repo. Todo lo de abajo se probó contra Anvil; falta
-> correrlo en Sepolia y en una L2 (por ejemplo Base Sepolia) y completar la tabla de resultados.
+> prueba y un RPC con clave, y esos datos no están en el repo. Los scripts se probaron contra un nodo local de
+> Hardhat; falta correrlos en Sepolia y en una L2 (por ejemplo Base Sepolia) y completar la tabla de resultados.
 
 ## Qué quedó listo
 
 | Pieza | Para qué sirve |
 |---|---|
-| `[rpc_endpoints]` en `contracts/foundry.toml` | Alias `sepolia`, `base_sepolia`, `arbitrum_sepolia` y `anvil`. Las URL salen de variables de entorno: no hay claves ni URL privadas en el repo. |
-| `script/Deploy.s.sol` | El mismo script de deploy de siempre sirve para cualquier red. |
-| `script/MeasureOps.s.sol` | Ejecuta las operaciones relevantes sobre un contrato ya desplegado: `mint`, `approve`, `createAgreement`, `claim`, `createAgreement` y `cancel`. |
-| `script/compare-costs.mjs` | Lee el resultado de `forge script` (`broadcast/.../run-latest.json`) y muestra el gas y el costo en ETH de cada transacción. |
+| `networks` en `contracts/hardhat.config.js` | Redes `sepolia`, `baseSepolia` y `arbitrumSepolia`. Las URL y la clave salen de variables de entorno: no hay claves ni URL privadas en el repo. Una red solo se define si su variable existe. |
+| `script/deploy.js` | El mismo script de deploy de siempre sirve para cualquier red. |
+| `script/measureOps.js` | Ejecuta las operaciones relevantes sobre un contrato ya desplegado: `mint`, `approve`, `createAgreement`, `claim`, `createAgreement` y `cancel`. Guarda el gas, el precio efectivo y el `l1Fee` de cada una en `measurements/<chainId>.json`. |
+| `script/compare-costs.mjs` | Lee esos archivos y muestra el gas y el costo en ETH de cada transacción. |
 
 ## Paso a paso
 
-Todo se corre en Git Bash, dentro de la carpeta `contracts/`.
+Todo se corre en una terminal, dentro de la carpeta `contracts/`, después de `npm install`.
 
 ### 1. Preparar una cuenta de pruebas (una sola vez)
 
-No pongas claves privadas en archivos del repo ni en la línea de comandos. Foundry puede guardarlas cifradas en tu
-PC:
+Usá una cuenta **solo de pruebas**, nunca una con fondos reales. La clave privada va en una variable de entorno de tu
+sesión: no la escribas en archivos del repo ni la subas a Git. Esa cuenta necesita ETH de prueba en cada red (se pide
+en el *faucet* de la red).
 
 ```bash
-cast wallet import deployer --interactive
+export DEPLOYER_PRIVATE_KEY="0x..."
 ```
-
-Te pide la clave privada de una cuenta **solo de pruebas** y una contraseña. Después la usás con `--account deployer`.
-Esa cuenta necesita ETH de prueba en cada red (se pide en el *faucet* de la red).
 
 ### 2. Configurar las URL de las redes
 
@@ -42,70 +40,54 @@ export BASE_SEPOLIA_RPC_URL="https://..."
 ### 3. Desplegar en cada red
 
 ```bash
-forge script script/Deploy.s.sol --rpc-url sepolia --account deployer --broadcast
-forge script script/Deploy.s.sol --rpc-url base_sepolia --account deployer --broadcast
+npx hardhat run script/deploy.js --network sepolia
+npx hardhat run script/deploy.js --network baseSepolia
 ```
 
-`Deploy.s.sol` guarda las direcciones de cada red en `frontend/public/deployments.json`, indexadas por `chainId`
-(Sepolia = `11155111`, Base Sepolia = `84532`).
-
-> **Ojo:** el script escribe `deployments.json` aunque se corra **sin** `--broadcast`. En ese caso las direcciones
-> quedan anotadas sin haberse desplegado. Si pasa, borrá esa entrada o repetí el deploy con `--broadcast`.
+`deploy.js` guarda las direcciones de cada red en `frontend/public/deployments.json`, indexadas por `chainId`
+(Sepolia = `11155111`, Base Sepolia = `84532`). Solo escribe el archivo después de que las transacciones se minaron,
+así que no deja direcciones de contratos que no existen.
 
 ### 4. Medir las operaciones
 
 Tomá las direcciones de `deployments.json` (`vestingManager` y `mockToken` de cada red):
 
 ```bash
-VESTING=0x... TOKEN=0x... forge script script/MeasureOps.s.sol --rpc-url sepolia --account deployer --broadcast
-VESTING=0x... TOKEN=0x... forge script script/MeasureOps.s.sol --rpc-url base_sepolia --account deployer --broadcast
+VESTING=0x... TOKEN=0x... npx hardhat run script/measureOps.js --network sepolia
+VESTING=0x... TOKEN=0x... npx hardhat run script/measureOps.js --network baseSepolia
 ```
+
+Cada corrida deja su resultado en `measurements/<chainId>.json`.
 
 ### 5. Ver los costos
 
 ```bash
-node script/compare-costs.mjs broadcast/MeasureOps.s.sol/11155111/run-latest.json broadcast/MeasureOps.s.sol/84532/run-latest.json
+npm run compare-costs -- measurements/11155111.json measurements/84532.json
 ```
 
-## Resultados medidos en local (Anvil)
+## Resultados medidos en local
 
 El **gas usado** depende solo del código del contrato y es la parte comparable entre redes compatibles con la EVM.
-Estos valores salieron de `MeasureOps` contra Anvil:
+Estos valores salieron de `measureOps.js` contra un nodo local de Hardhat (Solidity 0.8.28, optimizador con 200
+corridas):
 
-| Operación | Gas usado (Anvil) |
+| Operación | Gas usado (local) |
 |---|---|
-| `mint` (token de prueba) | 34.689 |
-| `approve` | 46.894 |
-| `createAgreement` (el primero, con storage nuevo) | 262.310 |
-| `claim` | 78.257 |
-| `createAgreement` (el segundo) | 206.210 |
-| `cancel` | 81.495 |
+| `mint` (token de prueba) | 34.179 |
+| `approve` | 46.330 |
+| `createAgreement` (el primero, con storage nuevo) | 257.774 |
+| `claim` | 76.131 |
+| `createAgreement` (el segundo) | 201.674 |
+| `cancel` | 79.221 |
 
 El segundo `createAgreement` sale más barato que el primero porque algunos slots de storage ya no están en cero.
 
-## Prueba con dos redes locales
+Qué **no** se comprobó, porque un nodo local no lo reproduce:
 
-Para comprobar el flujo completo sin gastar fondos reales se levantó una segunda red Anvil con otro `chainId` y un
-precio de gas distinto de cero, y se repitió todo con una cuenta guardada en un **keystore cifrado** (el mismo
-mecanismo del paso 1, pero con `--keystore <archivo> --password ...` en lugar de `--account`):
-
-```bash
-anvil --port 8546 --chain-id 31338 --block-time 1 --block-base-fee-per-gas 1000000000 --gas-price 2000000000
-```
-
-Qué se comprobó:
-
-- Firmar con el keystore funciona, tanto en `Deploy.s.sol` como en `MeasureOps.s.sol`.
-- `deployments.json` guarda **las dos redes por `chainId`** sin pisar la entrada anterior.
-- `compare-costs.mjs` compara dos corridas: el **gas usado es idéntico** en ambas redes (709.855 en total) y el costo
-  en ETH cambia según el precio del gas. Control a mano: 262.310 de gas × 0,006574 gwei ≈ 0,0000017 ETH, que es lo
-  que muestra `createAgreement`.
-
-Qué **no** se comprobó, porque Anvil no lo reproduce:
-
-- El campo `l1Fee` de las L2 tipo OP Stack: en Anvil siempre vale cero, así que no se sabe si `run-latest.json`
-  lo incluye en los recibos de una L2 real. Si no lo trae, el costo de una L2 quedaría subestimado.
+- El campo `l1Fee` de las L2 tipo OP Stack: en local siempre vale cero. `measureOps.js` lee el recibo crudo
+  (`eth_getTransactionReceipt`) justamente para capturarlo cuando la red lo informe, pero no se vio con una L2 real.
 - El comportamiento de Arbitrum y de las URL de proveedores reales.
+- La firma con una cuenta real en una testnet: solo se usaron las cuentas públicas del nodo local.
 
 ## Resultados en redes reales (completar)
 

@@ -23,8 +23,8 @@ El plan de trabajo del grupo (fases, roles y las decisiones de diseño iniciales
 |---|---|---|
 | **Lectura de la letra** | Contrastó el plan y la interfaz contra las secciones 2 a 17 y detectó lo que faltaba: el flag `revocable`, el estado `Completed` y el error `NotRevocable`; y que los tests mínimos son 16 y no 17 | Aceptar y aplicar esos cambios |
 | **Contratos** | Escribió `IVestingManager`, `VestingManager`, los tokens de prueba y las variantes de los desafíos opcionales (cliff, batch, Permit, UUPS) | Qué comportamiento debía tener cada parte (la letra y el plan) y qué desafíos hacer |
-| **Tests** | Escribió los 111 tests: unitarios, fuzzing, invariantes y los contratos atacantes (`ReentrantToken`, `FeeToken`) | El criterio de qué cubrir (los 16 casos de la letra y el checklist de la clase 13) |
-| **Scripts** | `Deploy.s.sol`, `DeployUpgradeable.s.sol`, `MeasureOps.s.sol` y `compare-costs.mjs` | — |
+| **Tests** | Escribió los 111 tests en Hardhat: unitarios, entradas aleatorias con semilla fija, invariantes y los contratos atacantes (`ReentrantToken`, `FeeToken`). Primero los escribió en otro entorno y después los pasó a Hardhat, el de la clase 13, y volvió a correr toda la suite | El criterio de qué cubrir (los 16 casos de la letra y el checklist de la clase 13) y usar Hardhat |
+| **Scripts** | `deploy.js`, `deployUpgradeable.js`, `measureOps.js` y `compare-costs.mjs` | — |
 | **Integración** | Detectó que dos versiones de `getAgreements` eran incompatibles y adaptó el contrato a la que consumía la dApp | Cuál versión adoptar |
 | **Verificación local** | Ejecutó scripts de Ethers contra Anvil, levantó redes locales y repitió los flujos con distintos tokens y decimales | Probar la interfaz con MetaMask (lo hizo una persona del grupo, no la herramienta) |
 | **Documentación** | Redactó `DECISIONES_DEFENSA`, `DESAFIOS_OPCIONALES`, `DEPLOY_L2`, el documento de arquitectura, los diagramas y esta declaración; actualizó el README | Revisar el contenido y firmar lo que entregamos |
@@ -36,7 +36,7 @@ La herramienta **no** tuvo acceso a billeteras reales ni se usaron claves privad
 
 ## 3. Cómo revisamos y verificamos lo generado
 
-- **Tests automáticos:** 111 tests con `forge test` y cobertura de líneas de 96,75 % (100 % en `VestingManager.sol`).
+- **Tests automáticos:** 111 tests con `npm test` (Hardhat) y cobertura de líneas de 96,64 % con `npm run coverage` (100 % en `VestingManager.sol`).
 - **Pruebas de integración:** un recorrido completo del contrato desplegado en Anvil con las mismas definiciones de ABI que usa la dApp (creación, devengado, reclamos, cancelación a mitad de período, reclamo posterior, tercero sin permisos y errores).
 - **Prueba manual con MetaMask** de las pantallas por parte de una persona del grupo.
 - **Revisión por pares** de los pull requests antes de mergear.
@@ -54,5 +54,5 @@ La herramienta **no** tuvo acceso a billeteras reales ni se usaron claves privad
 
 - **Alucinaciones y errores:** el código y los textos generados pueden ser incorrectos aunque suenen seguros. Por eso la verificación anterior es parte del trabajo, no un extra.
 - **Privacidad:** no conviene pegar credenciales en el chat con una herramienta de IA. En las pruebas se usaron solo cuentas públicas de Anvil y la herramienta no recibió acceso a ninguna billetera.
-- **Propiedad intelectual:** el contrato usa OpenZeppelin (licencia MIT) y Foundry/forge-std; el resto lo escribimos o lo generó la herramienta bajo nuestra revisión.
+- **Propiedad intelectual:** el contrato usa OpenZeppelin (licencia MIT) y los tests y scripts usan Hardhat y sus plugins; el resto lo escribimos o lo generó la herramienta bajo nuestra revisión.
 - **Autoría:** el trabajo presentado tiene que reflejar nuestra comprensión. Cada integrante debe poder explicar la arquitectura, el cálculo de vesting, la máquina de estados, la cancelación, el manejo del ERC-20, las decisiones de storage/memory/calldata, la seguridad y los tests, también las partes que no escribió. El documento de arquitectura y `docs/DECISIONES_DEFENSA.md` son nuestra guía de estudio para la defensa.
