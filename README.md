@@ -83,16 +83,18 @@ forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast --u
 El script `Deploy.s.sol` hace lo siguiente:
 
 1. Despliega `MockToken`, un token de prueba "Test USD" (`tUSD`) con **6 decimales**.
-2. Despliega `VestingManager`.
-3. Le da 1.000.000 tUSD a la cuenta #0 de Anvil, que es la que despliega.
-4. Escribe las direcciones en `frontend/public/deployments.json`, de donde las lee la dApp.
+2. Despliega `MockPermitToken` ("Permit USD", `pUSD`), igual pero con soporte de Permit (EIP-2612), para probar el desafío E.
+3. Despliega `VestingManager`.
+4. Le da 1.000.000 de cada token a la cuenta #0 de Anvil, que es la que despliega.
+5. Escribe las direcciones en `frontend/public/deployments.json`, de donde las lee la dApp.
 
 En un Anvil recién iniciado las direcciones siempre son las mismas:
 
 | Contrato | Dirección |
 |---|---|
 | MockToken (tUSD) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
-| VestingManager | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| MockPermitToken (pUSD) | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| VestingManager | `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0` |
 
 > **Si se reinicia Anvil**, la blockchain arranca vacía. Hay que volver a correr el deploy. En MetaMask también conviene hacer *Configuración → Avanzado → Borrar datos de actividad*, para que no queden nonces viejos.
 
@@ -153,12 +155,13 @@ cd contracts
 forge test
 ```
 
-Hay 54 tests:
+Hay 111 tests:
 
 - **Unitarios:** creación, devengado, reclamos, cancelación, redondeo y lectura en lote.
 - **Fuzzing:** redondeo y reparto en la cancelación.
 - **Reentrancy:** con un token malicioso.
 - **Invariantes:** el balance del contrato siempre cubre lo pendiente.
+- **Desafíos opcionales:** cliff, batch payroll, Permit (EIP-2612) y la variante upgradeable (UUPS). Ver [`docs/DESAFIOS_OPCIONALES.md`](docs/DESAFIOS_OPCIONALES.md).
 
 Todos manipulan el tiempo con `vm.warp`, así que no dependen de la hora real. Para ver el detalle de cada test, agregar `-vv`.
 
@@ -189,7 +192,10 @@ Prueban el `TransactionService` y las funciones de `agreement-utils.ts`.
 ## 10. Documentación
 
 - [`docs/Obligatorio_2026_Blockchain.md`](docs/Obligatorio_2026_Blockchain.md): la letra.
+- [`docs/DOCUMENTO_ARQUITECTURA.md`](docs/DOCUMENTO_ARQUITECTURA.md) (PDF: `docs/Documento_de_Arquitectura.pdf`): documento de arquitectura completo, con diagramas, decisiones y comparación L1 vs L2.
+- [`docs/DECLARACION_IA.md`](docs/DECLARACION_IA.md) (PDF: `docs/Declaracion_de_IA.pdf`): declaración de uso de IA.
 - [`docs/DECISIONES_DEFENSA.md`](docs/DECISIONES_DEFENSA.md): arquitectura, storage/memory/calldata, fórmula de vesting, máquina de estados, cancelación, seguridad y ERC-20.
+- [`docs/DESAFIOS_OPCIONALES.md`](docs/DESAFIOS_OPCIONALES.md) y [`docs/DEPLOY_L2.md`](docs/DEPLOY_L2.md): desafíos opcionales y cómo desplegar en una L2.
 - [`frontend/Readme.md`](frontend/Readme.md): estructura del frontend y formato de `deployments.json`.
 
 ## Problemas comunes

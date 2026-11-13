@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1260 900" width="1260" height="900" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .grp { fill:#f4f7fb; stroke:#9fb3c8; stroke-width:1.5 }
+      .sub { fill:#ffffff; stroke:#cbd5e1; stroke-width:1.2 }
+      .gt  { font-size:15px; font-weight:700; fill:#1e3a5f }
+      .st  { font-size:12px; font-weight:700; fill:#64748b }
+      .box { fill:#ffffff; stroke:#3b6ea5; stroke-width:1.5 }
+      .main{ fill:#e6f0fb; stroke:#1d4f91; stroke-width:2.2 }
+      .opt { fill:#ffffff; stroke:#64748b; stroke-width:1.4; stroke-dasharray:6 4 }
+      .b   { font-size:13px; font-weight:700; fill:#111827; text-anchor:middle }
+      .t   { font-size:12px; fill:#1f2937; text-anchor:middle }
+      .lab { font-size:11px; fill:#334155 }
+      .labe{ font-size:11px; fill:#334155; text-anchor:end }
+      .labm{ font-size:11px; fill:#334155; text-anchor:middle }
+      .ln  { stroke:#475569; stroke-width:1.6; fill:none; marker-end:url(#a) }
+      .ln2 { stroke:#475569; stroke-width:1.6; fill:none; marker-end:url(#a); marker-start:url(#a) }
+      .lnd { stroke:#64748b; stroke-width:1.4; fill:none; marker-end:url(#a); stroke-dasharray:5 4 }
+    </style>
+  </defs>
+  <rect width="1260" height="900" fill="#ffffff"/>
+
+  <!-- dApp -->
+  <rect class="grp" x="20" y="20" width="860" height="470" rx="10"/>
+  <text class="gt" x="36" y="44">dApp · Angular 22 + Ethers.js v6 (navegador)</text>
+
+  <rect class="sub" x="40" y="60" width="820" height="130" rx="8"/>
+  <text class="st" x="52" y="80">Pantallas</text>
+  <g>
+    <rect class="box" x="55"  y="95" width="145" height="80" rx="6"/>
+    <text class="b" x="127.5" y="127">/crear</text><text class="t" x="127.5" y="148">approve + crear</text>
+    <rect class="box" x="216" y="95" width="145" height="80" rx="6"/>
+    <text class="b" x="288.5" y="127">/acuerdos</text><text class="t" x="288.5" y="148">pagador · cancelar</text>
+    <rect class="box" x="377" y="95" width="145" height="80" rx="6"/>
+    <text class="b" x="449.5" y="127">/ingresos</text><text class="t" x="449.5" y="148">beneficiario · reclamar</text>
+    <rect class="box" x="538" y="95" width="145" height="80" rx="6"/>
+    <text class="b" x="610.5" y="127">/acuerdos/:id</text><text class="t" x="610.5" y="148">detalle + historial</text>
+    <rect class="box" x="699" y="95" width="145" height="80" rx="6"/>
+    <text class="b" x="771.5" y="127">/ (Billetera)</text><text class="t" x="771.5" y="148">cuenta, red y saldo</text>
+  </g>
+  <line class="ln" x1="450" y1="190" x2="450" y2="215"/>
+  <text class="lab" x="460" y="208">usan</text>
+
+  <rect class="sub" x="40" y="215" width="620" height="150" rx="8"/>
+  <text class="st" x="52" y="235">Servicios (core/)</text>
+  <rect class="box" x="55"  y="250" width="175" height="95" rx="6"/>
+  <text class="b" x="142.5" y="281">TransactionService</text>
+  <text class="t" x="142.5" y="303">firmando · pendiente ·</text>
+  <text class="t" x="142.5" y="320">confirmada · fallida</text>
+  <rect class="box" x="262" y="250" width="175" height="95" rx="6"/>
+  <text class="b" x="349.5" y="281">VestingService</text>
+  <text class="t" x="349.5" y="303">lecturas, escrituras,</text>
+  <text class="t" x="349.5" y="320">eventos y errores</text>
+  <rect class="box" x="469" y="250" width="175" height="95" rx="6"/>
+  <text class="b" x="556.5" y="281">WalletService</text>
+  <text class="t" x="556.5" y="303">cuenta y red</text>
+  <text class="t" x="556.5" y="320">en signals</text>
+  <line class="ln" x1="230" y1="297" x2="262" y2="297"/>
+  <line class="ln" x1="437" y1="297" x2="469" y2="297"/>
+
+  <rect class="box" x="40" y="395" width="170" height="70" rx="8"/>
+  <text class="b" x="125" y="425">deployments.json</text>
+  <text class="t" x="125" y="446">direcciones por chainId</text>
+  <path class="ln" d="M320,345 L320,430 L210,430"/>
+  <text class="lab" x="218" y="452">dirección del contrato</text>
+
+  <!-- MetaMask -->
+  <rect class="box" x="930" y="60" width="300" height="140" rx="10"/>
+  <text class="b" x="1080" y="100">MetaMask (extensión)</text>
+  <text class="t" x="1080" y="126">guarda las claves y firma</text>
+  <text class="t" x="1080" y="146">la dApp nunca ve una private key</text>
+  <path class="ln2" d="M644,297 L900,297 L900,130 L930,130"/>
+  <text class="lab" x="655" y="288">EIP-1193: cuenta, red y eventos</text>
+
+  <!-- escrituras firmadas -->
+  <path class="ln" d="M1150,200 L1150,705 L1090,705"/>
+  <text class="labe" x="1140" y="380">escrituras firmadas:</text>
+  <text class="labe" x="1140" y="396">approve · createAgreement</text>
+  <text class="labe" x="1140" y="412">claim · cancel</text>
+
+  <!-- lecturas -->
+  <path class="ln" d="M400,345 L400,640"/>
+  <text class="lab" x="412" y="545">lecturas sin firma · JSON-RPC</text>
+  <text class="lab" x="412" y="561">getAgreements · listados · saldos · eventos</text>
+
+  <!-- Cadena -->
+  <rect class="grp" x="330" y="590" width="900" height="290" rx="10"/>
+  <text class="gt" x="346" y="614">Cadena EVM · Anvil (chainId 31337) o testnet</text>
+
+  <rect class="main" x="350" y="640" width="270" height="130" rx="8"/>
+  <text class="b" x="485" y="670">VestingManager</text>
+  <text class="t" x="485" y="692">un contrato · mapping(id → Agreement)</text>
+  <text class="t" x="485" y="710">bloquea fondos · calcula devengado</text>
+  <text class="t" x="485" y="728">createAgreement (+Cliff · Batch · Permit)</text>
+  <text class="t" x="485" y="746">claim · cancel</text>
+
+  <rect class="main" x="830" y="640" width="260" height="130" rx="8"/>
+  <text class="b" x="960" y="670">Token ERC-20</text>
+  <text class="t" x="960" y="696">MockToken (6 dec.) · MockPermitToken</text>
+  <text class="t" x="960" y="716">o cualquier ERC-20 sin comisión</text>
+  <text class="t" x="960" y="736">approve · transferFrom · transfer</text>
+
+  <line class="ln" x1="620" y1="705" x2="830" y2="705"/>
+  <text class="labm" x="725" y="672">transferFrom: al crear</text>
+  <text class="labm" x="725" y="688">transfer: al reclamar o cancelar</text>
+  <text class="labm" x="725" y="724">siempre con SafeERC20</text>
+
+  <rect class="opt" x="350" y="800" width="270" height="62" rx="8"/>
+  <text class="b" x="485" y="826">Proxy ERC-1967 (UUPS)</text>
+  <text class="t" x="485" y="846">VestingManagerUpgradeable · opcional</text>
+  <path class="lnd" d="M485,800 L485,770"/>
+  <text class="lab" x="495" y="790">delegatecall</text>
+
+  <!-- Foundry -->
+  <rect class="grp" x="20" y="590" width="290" height="290" rx="10"/>
+  <text class="gt" x="36" y="614">Foundry</text>
+  <rect class="box" x="40" y="635" width="250" height="75" rx="6"/>
+  <text class="b" x="165" y="662">Deploy.s.sol</text>
+  <text class="t" x="165" y="682">despliega y guarda direcciones</text>
+  <text class="t" x="165" y="699">(DeployUpgradeable: variante UUPS)</text>
+  <rect class="box" x="40" y="730" width="250" height="75" rx="6"/>
+  <text class="b" x="165" y="757">Tests · forge test</text>
+  <text class="t" x="165" y="777">unitarios · fuzzing · invariantes</text>
+  <text class="t" x="165" y="794">reentrancy · EVM en memoria</text>
+  <rect class="box" x="40" y="820" width="250" height="45" rx="6"/>
+  <text class="b" x="165" y="838">MeasureOps + compare-costs</text>
+  <text class="t" x="165" y="855">gas por operación (desafío D)</text>
+
+  <line class="ln" x1="290" y1="672" x2="350" y2="672"/>
+  <text class="lab" x="297" y="666" style="font-size:10px">despliega</text>
+  <line class="ln" x1="125" y1="635" x2="125" y2="465"/>
+  <text class="lab" x="135" y="545">escribe las direcciones</text>
+</svg>
