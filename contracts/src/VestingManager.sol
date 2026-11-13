@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -12,12 +13,15 @@ import {IVestingManager} from "./IVestingManager.sol";
 contract VestingManager is IVestingManager, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    /// @dev Los ids empiezan en 1 para que el id 0 nunca sea un acuerdo valido.
-    uint256 private _nextId = 1;
+    /// @dev Los ids empiezan en 1 para que el id 0 nunca sea un acuerdo valido. Es `internal` para que la variante
+    ///      upgradeable pueda fijarlo en `initialize` (detras de un proxy el valor inicial de arriba no se aplica).
+    uint256 internal _nextId = 1;
 
     mapping(uint256 id => Agreement) private _agreements;
     mapping(address payer => uint256[]) private _idsByPayer;
     mapping(address beneficiary => uint256[]) private _idsByBeneficiary;
+    /// @dev Cliff por acuerdo, aparte del struct para no cambiar el ABI que ya usa la dApp. 0 = sin cliff.
+    mapping(uint256 id => uint48) private _cliffTime;
 
     // ------------------------------------------------------------------ Escrituras
 
@@ -30,34 +34,72 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         uint48 endTime,
         bool revocable
     ) external nonReentrant returns (uint256 id) {
-        if (token == address(0)) revert ZeroAddress();
-        if (beneficiary == address(0) || beneficiary == address(this)) revert InvalidBeneficiary();
-        if (amount == 0) revert ZeroAmount();
-        // Se permite un inicio pasado, pero el acuerdo debe terminar en el futuro y despues de empezar.
-        if (endTime <= startTime || endTime <= block.timestamp) revert InvalidTimeRange();
+        _validate(token, beneficiary, amount, startTime, endTime);
+        _pull(token, amount);
+        id = _store(token, beneficiary, amount, startTime, endTime, revocable);
+    }
 
-        // Se mide el balance real recibido: un token con comision por transferencia dejaria el acuerdo sub-fondeado.
-        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        if (IERC20(token).balanceOf(address(this)) - balanceBefore != amount) revert FeeOnTransferNotSupported();
+    /// @inheritdoc IVestingManager
+    function createAgreementWithCliff(
+        address token,
+        address beneficiary,
+        uint256 amount,
+        uint48 startTime,
+        uint48 cliffTime,
+        uint48 endTime,
+        bool revocable
+    ) external nonReentrant returns (uint256 id) {
+        _validate(token, beneficiary, amount, startTime, endTime);
+        // El cliff 0 significa "sin cliff", asi que un cliff explicito debe caer dentro del periodo.
+        if (cliffTime < startTime || cliffTime > endTime) revert InvalidCliff();
+        _pull(token, amount);
+        id = _store(token, beneficiary, amount, startTime, endTime, revocable);
+        _cliffTime[id] = cliffTime;
+        emit CliffConfigured(id, cliffTime);
+    }
 
-        id = _nextId++;
-        _agreements[id] = Agreement({
-            payer: msg.sender,
-            startTime: startTime,
-            endTime: endTime,
-            beneficiary: beneficiary,
-            status: Status.Active,
-            revocable: revocable,
-            token: token,
-            totalAmount: amount,
-            claimedAmount: 0,
-            vestedAtCancel: 0
-        });
-        _idsByPayer[msg.sender].push(id);
-        _idsByBeneficiary[beneficiary].push(id);
+    /// @inheritdoc IVestingManager
+    /// @dev La firma va en calldata (struct de solo lectura). `permit` se llama dentro de un try/catch a proposito:
+    ///      cualquiera puede ver la firma en el mempool y ejecutar `permit` antes, lo que haria revertir una llamada
+    ///      directa (griefing). Si la allowance ya existe, el cobro funciona igual; si no, `_pull` revierte.
+    function createAgreementWithPermit(
+        address token,
+        address beneficiary,
+        uint256 amount,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable,
+        PermitSignature calldata sig
+    ) external nonReentrant returns (uint256 id) {
+        _validate(token, beneficiary, amount, startTime, endTime);
+        try IERC20Permit(token).permit(msg.sender, address(this), amount, sig.deadline, sig.v, sig.r, sig.s) {}
+        catch {}
+        _pull(token, amount);
+        id = _store(token, beneficiary, amount, startTime, endTime, revocable);
+    }
 
-        emit AgreementCreated(id, msg.sender, beneficiary, token, amount, startTime, endTime, revocable);
+    /// @inheritdoc IVestingManager
+    /// @dev Los arreglos van en calldata: solo se leen, asi que no se copian a memoria. Se valida todo el lote
+    ///      antes de mover fondos y se cobra una sola vez por la suma, que es donde esta el ahorro de gas.
+    function createAgreementsBatch(
+        address token,
+        address[] calldata beneficiaries,
+        uint256[] calldata amounts,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable
+    ) external nonReentrant returns (uint256[] memory ids) {
+        uint256 count = beneficiaries.length;
+        if (count == 0) revert EmptyBatch();
+        if (count != amounts.length) revert LengthMismatch();
+
+        uint256 total = _validateBatch(token, beneficiaries, amounts, startTime, endTime);
+        _pull(token, total);
+
+        ids = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            ids[i] = _store(token, beneficiaries[i], amounts[i], startTime, endTime, revocable);
+        }
     }
 
     /// @inheritdoc IVestingManager
@@ -66,7 +108,7 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         if (msg.sender != a.beneficiary) revert NotBeneficiary();
 
         // Sirve tambien para un acuerdo cancelado: _vested devuelve lo congelado al cancelar.
-        uint256 amount = _vested(a) - a.claimedAmount;
+        uint256 amount = _vested(id, a) - a.claimedAmount;
         if (amount == 0) revert NothingToClaim();
 
         // Efectos antes de la transferencia externa (checks-effects-interactions).
@@ -88,7 +130,7 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         if (block.timestamp >= a.endTime) revert AlreadyEnded();
 
         // Se congela lo devengado: el beneficiario lo conserva y puede reclamarlo despues.
-        uint256 vested = _linearVested(a.totalAmount, a.startTime, a.endTime);
+        uint256 vested = _linearVested(a.totalAmount, a.startTime, _cliffTime[id], a.endTime);
         uint256 refund = a.totalAmount - vested;
 
         a.status = Status.Cancelled;
@@ -102,13 +144,19 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
 
     /// @inheritdoc IVestingManager
     function vestedAmount(uint256 id) external view returns (uint256) {
-        return _vested(_getStorage(id));
+        return _vested(id, _getStorage(id));
     }
 
     /// @inheritdoc IVestingManager
     function claimableAmount(uint256 id) external view returns (uint256) {
         Agreement storage a = _getStorage(id);
-        return _vested(a) - a.claimedAmount;
+        return _vested(id, a) - a.claimedAmount;
+    }
+
+    /// @inheritdoc IVestingManager
+    function cliffOf(uint256 id) external view returns (uint48) {
+        _getStorage(id); // revierte si el acuerdo no existe
+        return _cliffTime[id];
     }
 
     /// @inheritdoc IVestingManager
@@ -123,7 +171,7 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         result = new AgreementSummary[](ids.length);
         for (uint256 i = 0; i < ids.length; i++) {
             Agreement storage a = _getStorage(ids[i]);
-            uint256 vested = _vested(a);
+            uint256 vested = _vested(ids[i], a);
             result[i] = AgreementSummary({agreement: a, vested: vested, claimable: vested - a.claimedAmount});
         }
     }
@@ -146,15 +194,80 @@ contract VestingManager is IVestingManager, ReentrancyGuard {
         if (a.payer == address(0)) revert AgreementNotFound();
     }
 
-    /// @dev Cancelado: lo devengado esta congelado. En otro caso crece linealmente con el tiempo.
-    function _vested(Agreement storage a) private view returns (uint256) {
-        if (a.status == Status.Cancelled) return a.vestedAtCancel;
-        return _linearVested(a.totalAmount, a.startTime, a.endTime);
+    /// @dev Validaciones comunes a toda forma de crear un acuerdo.
+    function _validate(address token, address beneficiary, uint256 amount, uint48 startTime, uint48 endTime)
+        private
+        view
+    {
+        if (token == address(0)) revert ZeroAddress();
+        if (beneficiary == address(0) || beneficiary == address(this)) revert InvalidBeneficiary();
+        if (amount == 0) revert ZeroAmount();
+        // Se permite un inicio pasado, pero el acuerdo debe terminar en el futuro y despues de empezar.
+        if (endTime <= startTime || endTime <= block.timestamp) revert InvalidTimeRange();
     }
 
-    /// @dev total * (t - start) / (end - start). Antes de start es 0 y desde end es total.
+    /// @dev Valida cada elemento del lote con las mismas reglas que un acuerdo individual y devuelve la suma.
+    function _validateBatch(
+        address token,
+        address[] calldata beneficiaries,
+        uint256[] calldata amounts,
+        uint48 startTime,
+        uint48 endTime
+    ) private view returns (uint256 total) {
+        for (uint256 i = 0; i < beneficiaries.length; i++) {
+            _validate(token, beneficiaries[i], amounts[i], startTime, endTime);
+            total += amounts[i];
+        }
+    }
+
+    /// @dev Toma los fondos del pagador. Se mide el balance real recibido: un token con comision por
+    ///      transferencia dejaria el acuerdo sub-fondeado.
+    function _pull(address token, uint256 amount) private {
+        uint256 balanceBefore = IERC20(token).balanceOf(address(this));
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        if (IERC20(token).balanceOf(address(this)) - balanceBefore != amount) revert FeeOnTransferNotSupported();
+    }
+
+    /// @dev Guarda el acuerdo con una sola escritura del struct (cada slot empaquetado se escribe una vez),
+    ///      lo agrega a los listados y emite el evento.
+    function _store(
+        address token,
+        address beneficiary,
+        uint256 amount,
+        uint48 startTime,
+        uint48 endTime,
+        bool revocable
+    ) private returns (uint256 id) {
+        id = _nextId++;
+        _agreements[id] = Agreement({
+            payer: msg.sender,
+            startTime: startTime,
+            endTime: endTime,
+            beneficiary: beneficiary,
+            status: Status.Active,
+            revocable: revocable,
+            token: token,
+            totalAmount: amount,
+            claimedAmount: 0,
+            vestedAtCancel: 0
+        });
+        _idsByPayer[msg.sender].push(id);
+        _idsByBeneficiary[beneficiary].push(id);
+
+        emit AgreementCreated(id, msg.sender, beneficiary, token, amount, startTime, endTime, revocable);
+    }
+
+    /// @dev Cancelado: lo devengado esta congelado. En otro caso crece linealmente con el tiempo.
+    function _vested(uint256 id, Agreement storage a) private view returns (uint256) {
+        if (a.status == Status.Cancelled) return a.vestedAtCancel;
+        return _linearVested(a.totalAmount, a.startTime, _cliffTime[id], a.endTime);
+    }
+
+    /// @dev total * (t - start) / (end - start). Antes de start (o del cliff, si hay) es 0 y desde end es total.
     ///      mulDiv multiplica primero sin overflow intermedio y redondea hacia abajo: nunca paga de mas.
-    function _linearVested(uint256 total, uint48 start, uint48 end) private view returns (uint256) {
+    ///      Despues del cliff el devengado es el lineal calculado desde start, no desde el cliff.
+    function _linearVested(uint256 total, uint48 start, uint48 cliff, uint48 end) private view returns (uint256) {
+        if (block.timestamp < cliff) return 0; // cliff == 0 nunca entra aca
         if (block.timestamp <= start) return 0;
         if (block.timestamp >= end) return total;
         return Math.mulDiv(total, block.timestamp - start, end - start);

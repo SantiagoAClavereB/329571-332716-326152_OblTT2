@@ -124,9 +124,9 @@ Orden de verificaciones en `cancel`: pagador → estado `Active` → revocable �
 - **`SafeERC20`:** algunos tokens no devuelven `bool` o devuelven `false` en vez de revertir. `SafeERC20` verifica el resultado y revierte si la transferencia falló, para no dar por buena una transferencia que no ocurrió.
 - Flujo en la dApp: `approve` → `createAgreement`. Esto es **dos transacciones**; Permit (EIP-2612) lo reduciría a una pero es opcional.
 
-## 9. Avisos del linter de Foundry
+## 9. Avisos habituales de un linter
 
-`forge build` muestra avisos que están revisados y son aceptables:
+El compilador de Hardhat no emite avisos, pero un linter de Solidity (por ejemplo el de Foundry) marca tres puntos que ya revisamos y son aceptables:
 
 - `block-timestamp`: el vesting depende del tiempo por definición. Las fechas se miden en segundos, por lo que una desviación de unos segundos de los validadores no es relevante.
 - `reentrancy-events`: los eventos de `createAgreement` y `claim` se emiten cerca de llamadas externas, pero las tres funciones están protegidas con `nonReentrant`.

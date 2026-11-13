@@ -1,9 +1,12 @@
-# Foundry (contracts/)
-contracts/out/
+# Hardhat (contracts/)
+contracts/artifacts/
 contracts/cache/
-contracts/broadcast/
 contracts/coverage/
+contracts/coverage.json
 lcov.info
+# Salidas viejas de Foundry que pueden quedar en el disco de quien lo uso antes
+contracts/out/
+contracts/broadcast/
 
 # Direcciones del deploy local: las genera contracts/script/Deploy.s.sol en cada Anvil
 frontend/public/deployments.json
