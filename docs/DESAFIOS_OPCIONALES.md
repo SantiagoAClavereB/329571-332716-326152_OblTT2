@@ -61,7 +61,7 @@ inicial con `takeSnapshot`; suma del `gasUsed` de los recibos):
 |---|---|
 | 10 llamadas a `createAgreement` | 2.237.558 |
 | 1 llamada a `createAgreementsBatch` con 10 elementos | 1.753.061 |
-| **Ahorro** | **21%** |
+| **Ahorro** | **22%** |
 
 De dónde sale el ahorro: se evita pagar 9 veces el costo base de transacción, 9 `transferFrom` (cada una con sus
 lecturas y escrituras de balance y allowance), 9 entradas y salidas de `nonReentrant` y la repetición de los datos
@@ -189,8 +189,23 @@ EIP-712 desde MetaMask es trabajo de frontend que no se hizo.
 
 ## D. Deploy en L2
 
-**Estado: preparado, no ejecutado en una testnet.** Desplegar en una L2 real requiere una cuenta con fondos de
-prueba y un RPC con clave, y esos datos no están en el repo. Lo que sí se hizo y se probó en local:
+**Estado: ejecutado el 13/11/2026 en Sepolia (L1) y en Base Sepolia (L2).** Se desplegó la solución en las dos redes
+y se midieron las mismas 6 operaciones con la misma cuenta de pruebas:
+
+| | Sepolia | Base Sepolia |
+|---|---|---|
+| Gas total de las 6 operaciones | 2.366.951 | 709.807 |
+| Precio del gas | 0,05 gwei | 0,005 gwei |
+| Costo total | 0,000118348 ETH | 0,000003549 ETH (≈ 33 veces menos) |
+| `createAgreement` | 0,000053499 ETH | 0,000001311 ETH (≈ 41 veces menos) |
+| `claim` | 0,000008753 ETH | 0,000000391 ETH (≈ 22 veces menos) |
+
+Que Sepolia gaste más gas por operación se debe a que ya tiene las reglas de gas del hardfork Amsterdam, que
+encarecen crear storage nuevo. Base Sepolia todavía no las tiene. El `l1Fee` de Base existe pero es despreciable en
+testnet: menos de 1.000 wei por transacción. El análisis completo, las direcciones y los hashes están en
+[`DEPLOY_L2.md`](DEPLOY_L2.md).
+
+Herramientas que se armaron para esto:
 
 - Redes configuradas en `hardhat.config.js` (`sepolia`, `baseSepolia`, `arbitrumSepolia`), con las URL tomadas de
   variables de entorno; una red solo se define si su variable existe. Se comprobó que la compilación y los 111 tests
@@ -198,8 +213,5 @@ prueba y un RPC con clave, y esos datos no están en el repo. Lo que sí se hizo
 - `script/measureOps.js`: ejecuta `createAgreement`, `claim` y `cancel` sobre un contrato desplegado.
 - `script/compare-costs.mjs`: calcula gas y costo en ETH de cada transacción, incluido el `l1Fee` de las L2 tipo OP
   Stack.
-- Gas medido en local: `createAgreement` 262.310 (el primero) y 206.210 (el segundo), `claim` 78.257 y `cancel`
-  81.495.
-
-Los pasos para correrlo en Sepolia y en una L2, y la tabla de resultados reales (todavía vacía), están en
-[`DEPLOY_L2.md`](DEPLOY_L2.md). **Los costos en redes reales no se midieron.**
+- Gas medido en local con Anvil (reglas de Osaka, igual que en Base Sepolia, antes de migrar a Hardhat): `createAgreement` 262.297 (el primero) y
+  206.197 (el segundo), `claim` 78.248 y `cancel` 81.486.

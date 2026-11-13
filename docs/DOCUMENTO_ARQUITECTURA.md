@@ -274,7 +274,7 @@ La letra pide justificar al menos tres decisiones con ejemplos del propio códig
 
 ### 5.1 Struct empaquetado (storage)
 
-Ver §2.1. **Impacto:** `createAgreement` escribe 6 slots en vez de 10. Cada `SSTORE` a un slot que estaba en cero cuesta unos 20 000 gas, y es la operación dominante de la creación; empaquetar es lo que baja ese costo. Medimos 262 310 gas el primer `createAgreement` y 206 210 el segundo (algunos slots, como el balance del contrato en el token, ya no están en cero). Una ventaja secundaria: `payer`, `startTime` y `endTime` se leen con un único `SLOAD`.
+Ver §2.1. **Impacto:** `createAgreement` escribe 6 slots en vez de 10. Cada `SSTORE` a un slot que estaba en cero cuesta unos 20 000 gas, y es la operación dominante de la creación; empaquetar es lo que baja ese costo. Medimos 262 297 gas el primer `createAgreement` y 206 197 el segundo (algunos slots, como el balance del contrato en el token, ya no están en cero). Una ventaja secundaria: `payer`, `startTime` y `endTime` se leen con un único `SLOAD`.
 
 ### 5.2 Puntero a storage en lugar de copia
 
@@ -534,10 +534,10 @@ Los cinco desafíos están hechos en el contrato (cada uno en su propio commit),
 | Desafío | Qué hicimos | Decisión principal |
 |---|---|---|
 | **A. Cliff** | `createAgreementWithCliff`, `cliffOf`, evento `CliffConfigured` | Cliff en un mapping aparte para no cambiar el ABI (§3.2) |
-| **C. Batch payroll** | `createAgreementsBatch`: un acuerdo por beneficiario con **una sola** transferencia por la suma | Atómico: se valida todo antes de mover fondos. Con 10 acuerdos cuesta **1 795 728 gas contra 2 338 087** al crearlos uno por uno: **23 % menos** (mismo estado inicial, medido con `vm.snapshotState`) |
+| **C. Batch payroll** | `createAgreementsBatch`: un acuerdo por beneficiario con **una sola** transferencia por la suma | Atómico: se valida todo antes de mover fondos. Con 10 acuerdos cuesta **1 753 061 gas contra 2 237 558** al crearlos uno por uno: **22 % menos** (mismo estado inicial, medido con `takeSnapshot`) |
 | **E. Permit** | `createAgreementWithPermit` | `try/catch` en `permit` contra el *griefing* (§6.4) |
 | **B. UUPS** | `VestingManagerUpgradeable` detrás de un `ERC1967Proxy` | Variante **aparte**, no modificar el contrato original (abajo) |
-| **D. L2** | Redes en `hardhat.config.js`, `measureOps.js` y `compare-costs` | **No se desplegó en ninguna testnet**: falta una cuenta con fondos y un RPC |
+| **D. L2** | Redes en `hardhat.config.js`, `measureOps.js` y `compare-costs` | Desplegado y medido en **Sepolia y Base Sepolia** el 13/11/2026: en total, ≈ 33 veces más barato en la L2 (§13) |
 
 **UUPS: variante aparte y no una modificación.** La alternativa era convertir `VestingManager` en upgradeable. Elegimos no tocarlo: es el contrato probado al 100 % de cobertura y el que se despliega por defecto, y volverlo upgradeable cambiaría su modelo de confianza y su constructor para todos. La variante hereda la lógica (`contract VestingManagerUpgradeable is VestingManager, Initializable, UUPSUpgradeable`) y solo cambia lo mínimo: `initialize` reemplaza al constructor, el constructor de la implementación llama a `_disableInitializers()`, y `_authorizeUpgrade` exige ser `owner`. Entre los patrones de proxy elegimos UUPS porque la autorización del upgrade vive en la implementación, lo que hace al proxy más liviano; el riesgo que acepta es que una versión que pierda `_authorizeUpgrade` deja el proxy sin posibilidad de actualizarse.
 
@@ -549,19 +549,35 @@ Los cinco desafíos están hechos en el contrato (cada uno en su propio commit),
 
 ## 13. Ethereum L1 vs L2
 
-No se exige desplegar en una L2 y **no lo hicimos**. Esta sección es la comparación conceptual que pide la letra, apoyada en el gas que sí medimos (`createAgreement` 262 310 el primero y 206 210 el segundo, `claim` 78 257, `cancel` 81 495, `approve` 46 894). **No medimos costos en ETH de redes reales**; las instrucciones para hacerlo están en `docs/DEPLOY_L2.md`.
+Esta sección es la comparación que pide la letra. Como desafío opcional D, además, desplegamos la solución en **Sepolia** (L1 de prueba) y en **Base Sepolia** (L2 de prueba) y medimos las mismas operaciones en las dos el 13/11/2026. El detalle, las direcciones y los hashes están en `docs/DEPLOY_L2.md`.
 
 ### 13.1 Costo de gas
 
-El costo de una transacción en L1 es `gas usado × precio del gas`. En una L2 se suman dos partes: la ejecución en la L2 (con un precio normalmente muy bajo) y la publicación de los datos en L1 (en las redes tipo OP Stack, el campo `l1Fee` del recibo). Como el contrato es EVM estándar, **el gas de ejecución que medimos es comparable entre redes**; lo que cambia es el precio por unidad.
+El costo de una transacción en L1 es `gas usado × precio del gas`. En una L2 se suman dos partes: la ejecución en la L2 (con un precio normalmente muy bajo) y la publicación de los datos en L1 (en las redes tipo OP Stack, el campo `l1Fee` del recibo). El código del contrato es el mismo, pero **el gas usado no siempre lo es**: depende también de las reglas de gas del hardfork que tenga cada red.
 
-Crear un acuerdo cuesta entre ≈206 000 y ≈262 000 gas y reclamar ≈78 000. En L1 el costo de crear un acuerdo puede ser relevante frente al monto de un sueldo chico; en una L2 pasa a ser marginal.
+Lo que medimos:
+
+| Operación | Sepolia: gas | Sepolia: costo (ETH) | Base Sepolia: gas | Base Sepolia: costo (ETH) |
+|---|---|---|---|---|
+| `createAgreement` (el primero) | 1 069 977 | 0,000053499 | 262 297 | 0,000001311 |
+| `claim` | 175 068 | 0,000008753 | 78 248 | 0,000000391 |
+| `cancel` | 185 406 | 0,000009270 | 81 486 | 0,000000407 |
+| Total de las 6 operaciones | 2 366 951 | 0,000118348 | 709 807 | 0,000003549 |
+
+En total, la L2 salió **≈ 33 veces más barata**. Hay dos factores que se multiplican:
+
+- **El precio del gas fue 10 veces menor:** 0,005 gwei contra 0,05 gwei.
+- **Las mismas operaciones gastaron ≈ 3,3 veces menos gas.** Sepolia ya tiene las reglas de gas del hardfork Amsterdam, que encarecen mucho crear storage nuevo (EIP-8037). Base Sepolia todavía usa las anteriores, igual que Anvil. Por eso lo que más sube en Sepolia es `createAgreement`, que escribe varios slots nuevos. Esta parte de la diferencia es transitoria: cuando Base adopte Amsterdam, su gas va a subir igual.
+
+El `l1Fee` de Base existe pero fue despreciable: menos de 1.000 wei por transacción, porque el precio de L1 en Sepolia era muy bajo. En mainnet el precio de L1 es mucho más alto y esa parte puede pesar bastante en el costo de una L2. Los precios absolutos de las testnets no son representativos de mainnet: lo que sostenemos es la relación entre las redes.
+
+En L1 el costo de crear un acuerdo puede ser relevante frente al monto de un sueldo chico; en una L2 pasa a ser marginal.
 
 ### 13.2 Frecuencia esperada de reclamos
 
-La letra permite reclamar «en cualquier momento», y **cada reclamo lo paga el beneficiario**, no el pagador. Eso tiene una consecuencia económica: si cada reclamo cuesta ~78 000 gas, un beneficiario racional en L1 reclamará pocas veces y de a montos grandes (acumulando devengado, que no se pierde). Para una nómina con reclamos frecuentes (semanales, diarios) o montos chicos, el costo de reclamar puede acercarse al valor reclamado y desincentiva el uso. En una L2 el costo por reclamo es lo bastante bajo como para reclamar con frecuencia sin que el gas domine.
+La letra permite reclamar «en cualquier momento», y **cada reclamo lo paga el beneficiario**, no el pagador. Eso tiene una consecuencia económica: si cada reclamo cuesta entre ≈78 000 y ≈175 000 gas según la red, un beneficiario racional en L1 reclamará pocas veces y de a montos grandes (acumulando devengado, que no se pierde). Para una nómina con reclamos frecuentes (semanales, diarios) o montos chicos, el costo de reclamar puede acercarse al valor reclamado y desincentiva el uso. En una L2 el costo por reclamo es lo bastante bajo como para reclamar con frecuencia sin que el gas domine.
 
-Del lado del pagador, el batch payroll (§12) amortiza el costo base y las transferencias cuando hay muchos beneficiarios (−23 % con 10); en una L2 ese ahorro importa menos en términos absolutos, pero sigue siendo proporcional.
+Del lado del pagador, el batch payroll (§12) amortiza el costo base y las transferencias cuando hay muchos beneficiarios (−22 % con 10); en una L2 ese ahorro importa menos en términos absolutos, pero sigue siendo proporcional.
 
 ### 13.3 Experiencia de usuario
 
@@ -578,7 +594,7 @@ Dos limitaciones UX que ninguna red resuelve por sí sola: el beneficiario neces
 
 - **Dependencia del *sequencer*:** puede caerse o censurar transacciones; el reclamo depende de que la L2 esté activa.
 - **`block.timestamp`:** en una L2 lo fija el *sequencer*. A escala de días o meses el vesting no se ve afectado, pero no conviene usar este contrato para plazos de segundos.
-- **Compatibilidad de la EVM:** hay que comprobar que la L2 elegida soporte los *opcodes* con los que compila Solidity 0.8.24 (por ejemplo `PUSH0`) antes de desplegar. No lo verificamos contra ninguna L2 concreta.
+- **Compatibilidad de la EVM:** hay que comprobar que la L2 elegida soporte los *opcodes* con los que compila Solidity 0.8.24 (por ejemplo `PUSH0`) antes de desplegar. En Base Sepolia el deploy y todas las operaciones funcionaron sin cambios.
 
 ### 13.5 Conclusión
 
@@ -626,7 +642,7 @@ Las primeras nueve las fijó el plan y las confirmamos. Las demás surgieron al 
 | 15 | Tests en Hardhat con la estructura de la clase 13 | Foundry | Es lo visto en clase; fuzzing e invariantes quedan como bucles con semilla fija (§1.3, §10.1) | Plan + clase |
 | 16 | Invariantes con 64 × 40 | Valores por defecto (256 × 500) | La suite tardaba más de 10 minutos | Implementación |
 | 17 | Cliff en un mapping aparte | Campo en el struct | No cambiar el ABI de la dApp (§3.2) | Desafío A |
-| 18 | Batch atómico con una sola `transferFrom` | Varias llamadas o lote parcial | −23 % de gas; todo o nada (§12) | Desafío C |
+| 18 | Batch atómico con una sola `transferFrom` | Varias llamadas o lote parcial | −22 % de gas; todo o nada (§12) | Desafío C |
 | 19 | `try/catch` en `permit` | Llamada directa | Evita el *griefing* por *front-running* (§6.4) | Desafío E |
 | 20 | UUPS como contrato aparte | Modificar `VestingManager` | No tocar el contrato probado (§12) | Desafío B |
 | 21 | `_nextId` pasa de `private` a `internal` | Mantenerlo `private` | La variante upgradeable debe fijarlo en `initialize` | Desafío B |

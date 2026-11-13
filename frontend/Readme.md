@@ -37,13 +37,14 @@ Antes de `npm start` hay que tener el nodo local corriendo (`npm run node` en `c
 
 ## Dirección del contrato (`public/deployments.json`)
 
-La dApp lee la dirección del contrato de vesting de `public/deployments.json`. Ese archivo lo genera `contracts/script/deploy.js` y no se sube al repo, porque las direcciones cambian con cada nodo local. El formato está indexado por chainId:
+La dApp lee la dirección del contrato de vesting de `public/deployments.json`. Ese archivo lo genera `contracts/script/deploy.js` y no se sube al repo. Las direcciones dependen de la red, de la cuenta que despliega y de cuántas transacciones mandó antes: en un nodo recién iniciado salen siempre iguales, pero cambian si se despliega de nuevo sin reiniciarlo o si cambia el orden del script. El formato está indexado por chainId:
 
 ```json
 {
   "31337": {
-    "vestingManager": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "vestingManager": "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0",
     "mockToken": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "mockPermitToken": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
     "deployBlock": 0
   }
 }
@@ -51,7 +52,7 @@ La dApp lee la dirección del contrato de vesting de `public/deployments.json`. 
 
 - `vestingManager` es obligatorio.
 - `deployBlock` es el bloque desde donde se buscan los eventos del historial. Es opcional y vale 0 si no está.
-- `mockToken` la dApp no lo usa, porque el token se ingresa a mano en `/crear`. Sirve como referencia para saber qué dirección pegar.
+- `mockToken` y `mockPermitToken` la dApp no los usa, porque el token se ingresa a mano en `/crear`. Sirven como referencia para saber qué dirección pegar.
 
 Antes de usar la dirección, la dApp verifica que haya un contrato en ella. Si el nodo local se reinició sin volver a desplegar, avisa que hay que correr el deploy en vez de mandar transacciones a una dirección vacía.
 

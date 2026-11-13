@@ -40,7 +40,15 @@ Con `npm run node` corriendo en otra terminal:
 npm run deploy:local
 ```
 
-El script despliega `MockToken` ("Test USD", `tUSD`, 6 decimales), `MockPermitToken` y `VestingManager`. Le da 1.000.000 de cada token a la cuenta #0 y agrega las direcciones de esta red a `../frontend/public/deployments.json`, sin borrar las de otras redes.
+El script despliega, en este orden:
+
+| Contrato | Dirección en un nodo recién iniciado |
+|---|---|
+| `MockToken` ("Test USD", `tUSD`, 6 decimales) | `0x5FbDB2315678afecb367f032d93F642f64180aa3` |
+| `MockPermitToken` ("Permit USD", `pUSD`, 6 decimales, con EIP-2612) | `0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512` |
+| `VestingManager` | `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0` |
+
+La dirección de un contrato sale de la cuenta que despliega y de su nonce, así que depende de este orden: si se agrega o se mueve un deploy en el script, las direcciones cambian. Después le da 1.000.000 de cada token a la cuenta #0 y agrega las direcciones de esta red a `../frontend/public/deployments.json`, sin borrar las de otras redes.
 
 ## Configuración de los tests
 
