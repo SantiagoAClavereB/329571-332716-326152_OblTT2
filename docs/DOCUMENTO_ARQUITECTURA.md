@@ -478,8 +478,6 @@ Los tests corren en la red en memoria de Hardhat, no contra el nodo local: así 
 
 ### 10.2 Los 16 casos mínimos de la letra
 
-| Caso exigido | Test |
-|---|---|
 Todos están en `contracts/test/VestingManager.test.js`; se indica el `describe` y el `it`.
 
 | Caso exigido | Test |
@@ -511,9 +509,6 @@ Invariantes (`test/VestingInvariant.test.js`): 12 secuencias de 30 pasos en las 
 ### 10.4 Cobertura
 
 La suite tiene **111 tests** que pasan en unos 8 segundos. Cobertura medida con `npm run coverage` (solidity-coverage, sobre `src/`): **96,64 % de líneas en total** (incluye los contratos de prueba de `src/mocks/`), con **100 % de líneas** en `VestingManager.sol` y `VestingManagerUpgradeable.sol` y **93,33 % de ramas** en `VestingManager.sol` (la letra pide 75 %). Los dos tokens de prueba quedan en 66,67 % de líneas, porque `mint` y `decimals` se ejercitan poco; no es lógica del sistema. `ProxyImports.sol` figura en 0 % porque solo existe para que Hardhat genere el artifact del proxy.
-
-La cobertura mide qué líneas se ejecutaron, no que las aserciones sean buenas. Por eso importan más las propiedades de §10.3 que el porcentaje.
-
 ---
 
 ## 11. dApp (Angular + Ethers.js)
