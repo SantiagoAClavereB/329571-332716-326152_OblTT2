@@ -51,7 +51,7 @@ export class Crear {
   protected readonly tokenInfo = signal<TokenInfo | null>(null);
   protected readonly balance = signal<bigint | null>(null);
   protected readonly tokenError = signal<string | null>(null);
-  /** Hora de la cadena (no la de la PC: en Anvil se puede adelantar el tiempo). */
+  /** Hora de la cadena (no la de la PC: en el nodo local se puede adelantar el tiempo). */
   protected readonly chainNow = signal<number | null>(null);
   protected readonly submitting = signal(false);
   protected readonly submitError = signal<string | null>(null);

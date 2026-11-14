@@ -16,7 +16,7 @@ interface TokenInfo {
 
 /**
  * Prueba mínima de la Fase 1: conectar MetaMask, mostrar cuenta y red,
- * y leer el balance de un token ERC-20 desplegado en Anvil.
+ * y leer el balance de un token ERC-20 desplegado en la red local.
  */
 @Component({
   selector: 'app-wallet-check',

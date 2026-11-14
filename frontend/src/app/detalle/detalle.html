@@ -9,7 +9,7 @@
     <p>Conectá MetaMask para ver el acuerdo.</p>
   } @else if (!wallet.isAnvil()) {
     <h1>Acuerdo #{{ id() }}</h1>
-    <p class="error">Estás en otra red. Cambiá a Anvil desde el botón de arriba.</p>
+    <p class="error">Estás en otra red. Cambiá a la red local desde el botón de arriba.</p>
   } @else if (loadError()) {
     <h1>Acuerdo #{{ id() }}</h1>
     <p class="error">{{ loadError() }}</p>

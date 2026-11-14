@@ -1,6 +1,6 @@
 <main>
   <h1>Prueba de billetera</h1>
-  <p class="hint">Fase 1: conectar MetaMask, ver cuenta y red, y leer un balance de token en Anvil.</p>
+  <p class="hint">Fase 1: conectar MetaMask, ver cuenta y red, y leer un balance de token en la red local.</p>
 
   @if (!wallet.hasWallet) {
     <p class="error">No se detectó MetaMask. Instalá la extensión y recargá la página.</p>
@@ -18,8 +18,8 @@
           @if (wallet.isAnvil()) {
             <span class="ok">{{ anvil.name }}</span>
           } @else {
-            <span class="warn">no es Anvil</span>
-            <button class="small" (click)="wallet.switchToAnvil()">Cambiar a Anvil</button>
+            <span class="warn">no es la red local</span>
+            <button class="small" (click)="wallet.switchToAnvil()">Cambiar a red local</button>
           }
         </dd>
 
