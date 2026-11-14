@@ -26,7 +26,7 @@ Antes de `npm start` hay que tener el nodo local corriendo (`npm run node` en `c
 ## Estructura de `src/app/core/`
 
 - `wallet.service.ts`: conexión con MetaMask. Guarda cuenta y red en signals, y escucha `accountsChanged` y `chainChanged`.
-- `networks.ts`: datos de la red Anvil, para el botón "Cambiar a Anvil".
+- `networks.ts`: datos de la red local de Hardhat, para el botón "Cambiar a red local".
 - `vesting.service.ts`: lecturas, escrituras y eventos del contrato de vesting. También traduce al español los errores del contrato, del token y de MetaMask.
 - `transaction.service.ts`: estado de cada transacción (firmando, pendiente, confirmada o fallida) y aviso a las pantallas para que recarguen los datos.
 - `abis.ts`: ABIs del contrato (copia de `IVestingManager.sol`) y de ERC-20.

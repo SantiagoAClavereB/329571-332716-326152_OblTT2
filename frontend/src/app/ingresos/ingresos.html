@@ -5,7 +5,7 @@
   @if (!wallet.isConnected()) {
     <p>Conectá MetaMask para ver tus ingresos.</p>
   } @else if (!wallet.isAnvil()) {
-    <p class="error">Estás en otra red. Cambiá a Anvil desde el botón de arriba.</p>
+    <p class="error">Estás en otra red. Cambiá a la red local desde el botón de arriba.</p>
   } @else if (loadError()) {
     <p class="error">{{ loadError() }}</p>
   } @else if (agreements() === null) {

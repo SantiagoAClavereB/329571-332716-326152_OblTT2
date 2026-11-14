@@ -45,7 +45,7 @@ export class WalletService implements OnDestroy {
     await this.refresh('eth_requestAccounts');
   }
 
-  /** Cambia MetaMask a Anvil y, si la red no existe, la agrega. */
+  /** Cambia MetaMask a la red local y, si la red no existe, la agrega. */
   async switchToAnvil(): Promise<void> {
     if (!this.ethereum) return;
     this.error.set(null);

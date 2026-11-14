@@ -96,7 +96,7 @@ En un nodo recién iniciado las direcciones siempre son las mismas:
    | #1 | `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` | Beneficiario |
    | #2 | `0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC` | Tercero sin permisos |
 
-2. La red local (chainId 31337) no hace falta agregarla a mano. La dApp ofrece el botón **Cambiar a Anvil**, que la agrega si MetaMask no la conoce. El nombre del botón quedó de una versión anterior: la red es la misma, la que levanta `npm run node`.
+2. La red local (chainId 31337) no hace falta agregarla a mano. La dApp ofrece el botón **Cambiar a red local**, que la agrega si MetaMask no la conoce (aparece como "Hardhat (local)").
 3. Opcional: para ver el saldo de tUSD en MetaMask, usar *Importar tokens* con la dirección del MockToken.
 
 ## 6. Ejecutar la dApp
@@ -106,7 +106,7 @@ cd frontend
 npm start
 ```
 
-Abrir http://localhost:4200 y apretar **Conectar MetaMask**. Si MetaMask está en otra red, apretar **Cambiar a Anvil**.
+Abrir http://localhost:4200 y apretar **Conectar MetaMask**. Si MetaMask está en otra red, apretar **Cambiar a red local**.
 
 | Pantalla | Ruta | Qué hace |
 |---|---|---|
@@ -194,5 +194,5 @@ Prueban el `TransactionService` y las funciones de `agreement-utils.ts`.
 | "No hay contrato de vesting en la dirección de deployments.json: volvé a correr el deploy." | Se reinició el nodo y `deployments.json` quedó con direcciones viejas. Correr el paso 4 |
 | MetaMask da error de nonce o la transacción queda colgada | Se reinició el nodo. En MetaMask: *Configuración → Avanzado → Borrar datos de actividad* |
 | El devengado no avanza | El nodo no se levantó con `npm run node` (que mina un bloque por segundo). Por ejemplo, si se usó `npx hardhat node` a mano |
-| "Estás en otra red" | MetaMask no está en la red local (chainId 31337). Apretar **Cambiar a Anvil** |
+| "Estás en otra red" | MetaMask no está en la red local (chainId 31337). Apretar **Cambiar a red local** |
 | `npm test` no encuentra `@openzeppelin/...` | Faltan las dependencias de `contracts/`. Correr `npm install` ahí (paso 2) |

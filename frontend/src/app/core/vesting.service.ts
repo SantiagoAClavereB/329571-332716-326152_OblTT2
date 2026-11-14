@@ -258,7 +258,7 @@ export class VestingService {
     return new Contract(address, ERC20_ABI, runner);
   }
 
-  /** Dirección del contrato en la red actual. Verifica que haya código (p. ej. si se reinició Anvil sin redeploy). */
+  /** Dirección del contrato en la red actual. Verifica que haya código (p. ej. si se reinició el nodo local sin redeploy). */
   private async vestingAddress(): Promise<string> {
     const address = getAddress((await this.deployment()).vestingManager);
     const key = `${this.wallet.chainId()}:${address}`;
@@ -277,7 +277,7 @@ export class VestingService {
     const chainId = this.wallet.chainId();
     if (chainId === null) throw new Error('Conectá la billetera primero.');
     const entry = (await this.loadDeployments())[chainId.toString()];
-    if (!entry) throw new Error(`El contrato no está desplegado en la red ${chainId}. Cambiá a Anvil.`);
+    if (!entry) throw new Error(`El contrato no está desplegado en la red ${chainId}. Cambiá a la red local.`);
     return entry;
   }
 
