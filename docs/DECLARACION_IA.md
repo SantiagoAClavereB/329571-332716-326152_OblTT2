@@ -10,12 +10,9 @@ Esta declaración sigue las condiciones generales del obligatorio: indicamos **q
 | Integrante | Herramienta | Para qué |
 |---|---|---|
 | Romina Carsin | **Claude Code** (Anthropic), con un modelo de la familia Claude, usado dentro de la aplicación de escritorio de Claude | Análisis de la letra, contratos, tests, scripts, documentación y apoyo con Git (detalle en la sección 2) |
-| [completar] | [herramienta, o «no usó IA generativa»] | [contexto de uso] |
-| [completar] | [herramienta, o «no usó IA generativa»] | [contexto de uso] |
+| Santiago Claveré | Claude | todo |
+| Renzo Macchi | Claude | todo |
 
-> **Cada integrante tiene que completar su fila con lo que realmente hizo.** Las filas de los otros dos integrantes quedan vacías a propósito: quien redactó este borrador no puede saber qué herramientas usaron.
-
-El plan de trabajo del grupo (fases, roles y las decisiones de diseño iniciales) también se registra como material elaborado con ayuda de IA, según lo que indica el propio plan.
 
 ## 2. Contexto de uso: Claude Code (Romina Carsin)
 
