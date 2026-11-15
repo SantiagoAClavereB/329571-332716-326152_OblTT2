@@ -1,0 +1,22 @@
+{
+  "name": "vesting-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Contratos, tests y scripts del VestingManager (Hardhat)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "node": "hardhat node --hostname 127.0.0.1 --port 8545",
+    "deploy:local": "hardhat run script/deploy.js --network localhost",
+    "deploy:upgradeable:local": "hardhat run script/deployUpgradeable.js --network localhost",
+    "compare-costs": "node script/compare-costs.mjs"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.7.0"
+  }
+}

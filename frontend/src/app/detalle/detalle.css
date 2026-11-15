@@ -1,0 +1,29 @@
+main { max-width: 760px; margin: 1.5rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; }
+.back { margin: 0 0 1rem; font-size: 0.9rem; }
+h1 { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.25rem; }
+h2 { margin-top: 0; font-size: 1.05rem; }
+.role { margin-top: 0; color: #444; }
+.error { color: #c62828; }
+.muted { color: #777; font-size: 0.9rem; }
+.mono { font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+.small { font-size: 0.8rem; color: #666; }
+section { margin-top: 1.25rem; padding: 1rem; border: 1px solid #ddd; border-radius: 8px; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.4rem 1rem; margin: 0; }
+dt { font-weight: 600; }
+dd { margin: 0; }
+.actions { display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; }
+button { padding: 0.5rem 1rem; cursor: pointer; }
+button.danger { border-color: #c62828; color: #c62828; }
+.badge { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.85rem; font-weight: normal; }
+.active { background: #e8f0fe; color: #1a4fb3; }
+.ended { background: #fff6ec; color: #b35900; }
+.completed { background: #eefaf1; color: #1a7f37; }
+.cancelled { background: #f2f2f2; color: #666; }
+.progress-label { display: flex; justify-content: space-between; font-size: 0.9rem; margin-top: 0.6rem; }
+.bar { height: 8px; background: #eee; border-radius: 4px; margin-top: 0.25rem; }
+.bar > div { height: 100%; background: #1a7f37; border-radius: 4px; }
+.bar.time > div { background: #1a4fb3; }
+.bar.claimed > div { background: #6a3fb3; }
+.history { margin: 0; padding-left: 1.25rem; display: grid; gap: 0.6rem; }
+.history li { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: baseline; }
+.when { color: #555; font-size: 0.9rem; }

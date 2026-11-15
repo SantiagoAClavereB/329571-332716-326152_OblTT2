@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 470" width="1100" height="470" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <style>
+      .st  { fill:#e6f0fb; stroke:#1d4f91; stroke-width:2.2 }
+      .fin { fill:#eefaf0; stroke:#2f7d3b; stroke-width:2.2 }
+      .can { fill:#fdf1ec; stroke:#b4552d; stroke-width:2.2 }
+      .b   { font-size:16px; font-weight:700; fill:#111827; text-anchor:middle }
+      .t   { font-size:12px; fill:#1f2937; text-anchor:middle }
+      .lab { font-size:12px; fill:#334155 }
+      .labm{ font-size:12px; fill:#334155; text-anchor:middle }
+      .labb{ font-size:12px; font-weight:700; fill:#111827; text-anchor:middle }
+      .ln  { stroke:#475569; stroke-width:1.8; fill:none; marker-end:url(#a) }
+    </style>
+  </defs>
+  <rect width="1100" height="470" fill="#ffffff"/>
+
+  <!-- inicio -->
+  <circle cx="60" cy="190" r="9" fill="#475569"/>
+  <line class="ln" x1="69" y1="190" x2="340" y2="190"/>
+  <text class="labb" x="205" y="164">createAgreement</text>
+  <text class="labm" x="205" y="180">(+Cliff · Batch · Permit)</text>
+  <text class="labm" x="205" y="212">valida, cobra y guarda</text>
+
+  <!-- Active -->
+  <rect class="st" x="340" y="145" width="240" height="90" rx="12"/>
+  <text class="b" x="460" y="182">Active</text>
+  <text class="t" x="460" y="204">vigente · acumula devengado</text>
+  <text class="t" x="460" y="220">claimed &lt; total</text>
+
+  <!-- autolazo claim parcial -->
+  <path class="ln" d="M410,145 C410,75 510,75 510,145"/>
+  <text class="labb" x="460" y="62">claim() parcial</text>
+  <text class="labm" x="460" y="78">sigue Active</text>
+
+  <!-- Completed -->
+  <rect class="fin" x="800" y="145" width="240" height="90" rx="12"/>
+  <text class="b" x="920" y="182">Completed</text>
+  <text class="t" x="920" y="204">todo reclamado</text>
+  <text class="t" x="920" y="220">estado final</text>
+  <line class="ln" x1="580" y1="190" x2="800" y2="190"/>
+  <text class="labb" x="690" y="164">claim()</text>
+  <text class="labm" x="690" y="180">que retira todo:</text>
+  <text class="labm" x="690" y="212">claimed == total</text>
+
+  <!-- Cancelled -->
+  <rect class="can" x="340" y="335" width="240" height="90" rx="12"/>
+  <text class="b" x="460" y="372">Cancelled</text>
+  <text class="t" x="460" y="394">devengado congelado</text>
+  <text class="t" x="460" y="410">(vestedAtCancel)</text>
+  <line class="ln" x1="460" y1="235" x2="460" y2="335"/>
+  <text class="labb" x="475" y="274" style="text-anchor:start">cancel()</text>
+  <text class="lab" x="475" y="291">solo el pagador · revocable</text>
+  <text class="lab" x="475" y="307">solo si t &lt; endTime</text>
+  <text class="lab" x="475" y="323">devuelve lo no devengado</text>
+
+  <!-- autolazo claim tras cancelar -->
+  <path class="ln" d="M580,360 C680,345 680,415 580,400"/>
+  <text class="labb" x="690" y="372" style="text-anchor:start">claim()</text>
+  <text class="lab" x="690" y="388" style="text-anchor:start">reclama lo devengado;</text>
+  <text class="lab" x="690" y="404" style="text-anchor:start">sin saldo → NothingToClaim</text>
+
+  <!-- nota -->
+  <text class="lab" x="40" y="450">Desde Completed o Cancelled, cancel() revierte con NotActive.</text>
+</svg>

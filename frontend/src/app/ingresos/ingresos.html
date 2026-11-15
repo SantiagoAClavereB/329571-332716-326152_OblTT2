@@ -1,0 +1,70 @@
+<main>
+  <h1>Mis ingresos</h1>
+  <p class="hint">Acuerdos donde sos el beneficiario. El disponible se actualiza solo cada pocos segundos.</p>
+
+  @if (!wallet.isConnected()) {
+    <p>Conectá MetaMask para ver tus ingresos.</p>
+  } @else if (!wallet.isAnvil()) {
+    <p class="error">Estás en otra red. Cambiá a la red local desde el botón de arriba.</p>
+  } @else if (loadError()) {
+    <p class="error">{{ loadError() }}</p>
+  } @else if (agreements() === null) {
+    <p>Cargando…</p>
+  } @else if (agreements()!.length === 0) {
+    <p>No tenés acuerdos como beneficiario.</p>
+  } @else {
+    @if (totalsByToken().length) {
+      <p class="summary">
+        Disponible para reclamar:
+        @for (t of totalsByToken(); track t.token.address; let last = $last) {
+          <strong>{{ formatAmount(t.amount, t.token) }}</strong>{{ last ? '' : ' · ' }}
+        }
+      </p>
+    }
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Pagador</th>
+            <th>Estado</th>
+            <th class="num">Total</th>
+            <th>Devengado</th>
+            <th class="num">Reclamado</th>
+            <th class="num">Disponible</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of agreements(); track a.id) {
+            <tr>
+              <td><a [routerLink]="['/acuerdos', a.id.toString()]">#{{ a.id }}</a></td>
+              <td class="mono" [title]="a.payer">{{ shortAddress(a.payer) }}</td>
+              <td>
+                <span class="badge" [class]="statusClass(a, now())">{{ displayStatus(a, now()) }}</span>
+              </td>
+              <td class="num">{{ formatAmount(a.totalAmount, a.tokenInfo) }}</td>
+              <td>
+                <div class="bar"><div [style.width.%]="percent(a.vested, a.totalAmount)"></div></div>
+                {{ formatAmount(a.vested, a.tokenInfo) }}
+                <span class="muted">({{ percent(a.vested, a.totalAmount) }}%)</span>
+                <div class="dates">hasta {{ formatDate(a.endTime) }}</div>
+              </td>
+              <td class="num">{{ formatAmount(a.claimedAmount, a.tokenInfo) }}</td>
+              <td class="num"><strong>{{ formatAmount(a.claimable, a.tokenInfo) }}</strong></td>
+              <td>
+                @if (canClaim(a)) {
+                  <button (click)="claim(a)" [disabled]="tx.busy()">Reclamar</button>
+                } @else {
+                  <span class="muted" title="No hay saldo disponible para reclamar.">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">El monto reclamado se calcula al minarse la transacción, así que puede ser un poco mayor que el disponible que se ve.</p>
+  }
+</main>

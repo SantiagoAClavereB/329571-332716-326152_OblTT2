@@ -1,0 +1,60 @@
+<main>
+  <h1>Mis acuerdos</h1>
+  <p class="hint">Acuerdos donde sos el pagador. El devengado se actualiza solo cada pocos segundos.</p>
+
+  @if (!wallet.isConnected()) {
+    <p>Conectá MetaMask para ver tus acuerdos.</p>
+  } @else if (!wallet.isAnvil()) {
+    <p class="error">Estás en otra red. Cambiá a la red local desde el botón de arriba.</p>
+  } @else if (loadError()) {
+    <p class="error">{{ loadError() }}</p>
+  } @else if (agreements() === null) {
+    <p>Cargando…</p>
+  } @else if (agreements()!.length === 0) {
+    <p>Todavía no creaste ningún acuerdo. <a routerLink="/crear">Crear uno</a></p>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Beneficiario</th>
+            <th>Estado</th>
+            <th class="num">Total</th>
+            <th>Devengado</th>
+            <th>Período</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (a of agreements(); track a.id) {
+            <tr>
+              <td><a [routerLink]="['/acuerdos', a.id.toString()]">#{{ a.id }}</a></td>
+              <td class="mono" [title]="a.beneficiary">{{ shortAddress(a.beneficiary) }}</td>
+              <td>
+                <span class="badge" [class]="statusClass(a, now())">{{ displayStatus(a, now()) }}</span>
+                @if (!a.revocable) {
+                  <span class="muted">no revocable</span>
+                }
+              </td>
+              <td class="num">{{ formatAmount(a.totalAmount, a.tokenInfo) }}</td>
+              <td>
+                <div class="bar"><div [style.width.%]="percent(a.vested, a.totalAmount)"></div></div>
+                {{ formatAmount(a.vested, a.tokenInfo) }}
+                <span class="muted">({{ percent(a.vested, a.totalAmount) }}%)</span>
+              </td>
+              <td class="dates">{{ formatDate(a.startTime) }}<br />{{ formatDate(a.endTime) }}</td>
+              <td>
+                @if (canCancel(a)) {
+                  <button (click)="cancel(a)" [disabled]="tx.busy()">Cancelar</button>
+                } @else {
+                  <span class="muted" [title]="cancelBlockedReason(a, now()) ?? ''">—</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</main>

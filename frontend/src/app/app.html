@@ -1,0 +1,29 @@
+<header>
+  <nav>
+    <a routerLink="/crear" routerLinkActive="active">Crear</a>
+    <a routerLink="/acuerdos" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Mis acuerdos</a>
+    <a routerLink="/ingresos" routerLinkActive="active">Mis ingresos</a>
+    <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Billetera</a>
+  </nav>
+
+  <div class="wallet">
+    @if (!wallet.hasWallet) {
+      <span class="error">Sin MetaMask</span>
+    } @else if (!wallet.isConnected()) {
+      <button (click)="wallet.connect()">Conectar MetaMask</button>
+    } @else {
+      @if (!wallet.isAnvil()) {
+        <button class="warn-btn" (click)="wallet.switchToAnvil()">Cambiar a red local</button>
+      }
+      <span class="mono" [title]="wallet.account()">{{ shortAccount() }}</span>
+    }
+  </div>
+</header>
+
+@if (wallet.error()) {
+  <p class="error banner">{{ wallet.error() }}</p>
+}
+
+<app-tx-list />
+
+<router-outlet />

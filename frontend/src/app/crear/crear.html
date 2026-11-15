@@ -1,0 +1,79 @@
+<main>
+  <h1>Crear acuerdo</h1>
+  <p class="hint">Se bloquea el monto en el contrato y el beneficiario lo va recibiendo de forma lineal entre las dos fechas.</p>
+
+  @if (!wallet.isConnected()) {
+    <p>Conectá MetaMask para crear un acuerdo.</p>
+  } @else if (!wallet.isAnvil()) {
+    <p class="error">Estás en otra red. Cambiá a la red local desde el botón de arriba.</p>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <label>
+        Token (dirección ERC-20)
+        <input formControlName="token" class="mono" placeholder="0x…" autocomplete="off" spellcheck="false" />
+      </label>
+      @if (fieldError('token', 'required')) { <p class="error">Ingresá la dirección del token.</p> }
+      @if (fieldError('token', 'address')) { <p class="error">La dirección no es válida.</p> }
+      @if (fieldError('token', 'zeroAddress')) { <p class="error">No puede ser la dirección 0x0.</p> }
+      @if (tokenError()) { <p class="error">{{ tokenError() }}</p> }
+      @if (tokenInfo(); as t) {
+        <p class="info">{{ t.name }} ({{ t.symbol }}), {{ t.decimals }} decimales. Tu saldo: <strong>{{ formatBalance() }}</strong></p>
+      }
+
+      <label>
+        Beneficiario
+        <input formControlName="beneficiary" class="mono" placeholder="0x…" autocomplete="off" spellcheck="false" />
+      </label>
+      @if (fieldError('beneficiary', 'required')) { <p class="error">Ingresá la dirección del beneficiario.</p> }
+      @if (fieldError('beneficiary', 'address')) { <p class="error">La dirección no es válida.</p> }
+      @if (fieldError('beneficiary', 'zeroAddress')) { <p class="error">No puede ser la dirección 0x0.</p> }
+
+      <label>
+        Monto total
+        <input formControlName="amount" inputmode="decimal" placeholder="1000" autocomplete="off" />
+      </label>
+      @if (fieldError('amount', 'required')) { <p class="error">Ingresá el monto.</p> }
+      @if (fieldError('amount', 'pattern')) { <p class="error">Usá solo números y punto decimal (ej. 1000.5).</p> }
+      @if (groupError('tooManyDecimals')) {
+        <p class="error">El token admite hasta {{ form.getError('tooManyDecimals') }} decimales.</p>
+      }
+      @if (groupError('zeroAmount')) { <p class="error">El monto tiene que ser mayor que 0.</p> }
+      @if (groupError('exceedsBalance')) { <p class="error">No tenés saldo suficiente.</p> }
+
+      <div class="row">
+        <label>
+          Inicio
+          <input type="datetime-local" formControlName="start" />
+        </label>
+        <button type="button" class="link" (click)="setStartNow()">Ahora</button>
+        <label>
+          Fin
+          <input type="datetime-local" formControlName="end" />
+        </label>
+      </div>
+      @if (fieldError('start', 'required') || fieldError('end', 'required')) {
+        <p class="error">Completá las dos fechas.</p>
+      }
+      @if (groupError('endBeforeStart')) { <p class="error">El fin tiene que ser posterior al inicio.</p> }
+      @if (groupError('endInPast')) { <p class="error">El fin tiene que estar en el futuro.</p> }
+
+      <label class="check">
+        <input type="checkbox" formControlName="revocable" />
+        Revocable (el pagador puede cancelarlo antes del fin)
+      </label>
+
+      <button type="submit" [disabled]="submitting() || tx.busy()">
+        {{ submitting() ? 'Procesando…' : 'Crear acuerdo' }}
+      </button>
+      <p class="hint">Si hace falta, primero MetaMask pide aprobar el monto exacto del token y después crear el acuerdo.</p>
+
+      @if (submitError()) { <p class="error">{{ submitError() }}</p> }
+      @if (createdId() !== null) {
+        <p class="ok">
+          Acuerdo #{{ createdId() }} creado.
+          <a [routerLink]="['/acuerdos', createdId()!.toString()]">Ver detalle</a>
+        </p>
+      }
+    </form>
+  }
+</main>

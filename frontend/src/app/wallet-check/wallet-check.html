@@ -1,0 +1,64 @@
+<main>
+  <h1>Prueba de billetera</h1>
+  <p class="hint">Fase 1: conectar MetaMask, ver cuenta y red, y leer un balance de token en la red local.</p>
+
+  @if (!wallet.hasWallet) {
+    <p class="error">No se detectó MetaMask. Instalá la extensión y recargá la página.</p>
+  } @else if (!wallet.isConnected()) {
+    <button (click)="wallet.connect()">Conectar MetaMask</button>
+  } @else {
+    <section>
+      <dl>
+        <dt>Cuenta</dt>
+        <dd class="mono">{{ wallet.account() }}</dd>
+
+        <dt>Red</dt>
+        <dd>
+          chainId {{ wallet.chainId() }}
+          @if (wallet.isAnvil()) {
+            <span class="ok">{{ anvil.name }}</span>
+          } @else {
+            <span class="warn">no es la red local</span>
+            <button class="small" (click)="wallet.switchToAnvil()">Cambiar a red local</button>
+          }
+        </dd>
+
+        <dt>Balance ETH</dt>
+        <dd>{{ ethBalance() ?? '…' }}</dd>
+      </dl>
+    </section>
+
+    <section>
+      <h2>Token ERC-20</h2>
+      <form (ngSubmit)="readToken()">
+        <input
+          name="token"
+          class="mono"
+          placeholder="0x… dirección del token"
+          [(ngModel)]="tokenAddress"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="submit" [disabled]="loading()">{{ loading() ? 'Leyendo…' : 'Leer balance' }}</button>
+      </form>
+
+      @if (tokenError()) {
+        <p class="error">{{ tokenError() }}</p>
+      }
+      @if (token(); as t) {
+        <dl>
+          <dt>Token</dt>
+          <dd>{{ t.name }} ({{ t.symbol }})</dd>
+          <dt>Decimales</dt>
+          <dd>{{ t.decimals }}</dd>
+          <dt>Balance</dt>
+          <dd class="big">{{ t.balance }} {{ t.symbol }}</dd>
+        </dl>
+      }
+    </section>
+  }
+
+  @if (wallet.error()) {
+    <p class="error">{{ wallet.error() }}</p>
+  }
+</main>
