@@ -1,7 +1,7 @@
 # Documento de arquitectura: Vesting dApp
 
 **Materia:** Taller de Tecnologías 2 · **Grupo:** M6C · **Obligatorio 2026: Blockchain**
-**Repositorio:** `329571-332716-326152_OblTT2` · **Integrantes:** Romina Carsin, [completar], [completar]
+**Repositorio:** `329571-332716-326152_OblTT2` · **Integrantes:** Romina Carsin, Santiago Claveré, Renzo Macchi
 
 ## 0. Alcance y trazabilidad con la letra
 
